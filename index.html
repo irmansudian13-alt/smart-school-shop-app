@@ -442,7 +442,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, setDoc, doc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Import getAnalytics
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
         // --- Global Variables (Canvas Injected) ---
         // These variables are provided by the Canvas environment at runtime.
@@ -452,27 +452,18 @@
         const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
 
-        // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyD4fBs0c6dIycDbuFew1355aDuJYgMm8Q0",
-  authDomain: "smart-school-shop-app.firebaseapp.com",
-  projectId: "smart-school-shop-app",
-  storageBucket: "smart-school-shop-app.firebasestorage.app",
-  messagingSenderId: "334558132445",
-  appId: "1:334558132445:web:998241d5bd4672d24ec334",
-  measurementId: "G-EX61980YME"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+        // --- Firebase Configuration (YOUR ACTUAL FIREBASE CONFIG) ---
+        // This is the ONLY firebaseConfig block that should exist.
+        // It has been updated with the values you provided in the previous turn.
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4fBs0c6dIycDbuFew1355aDuJYgMm8Q0",
+            authDomain: "smart-school-shop-app.firebaseapp.com",
+            projectId: "smart-school-shop-app",
+            storageBucket: "smart-school-shop-app.firebasestorage.app",
+            messagingSenderId: "334558132445",
+            appId: "1:334558132445:web:998241d5bd4672d24ec334",
+            measurementId: "G-EX61980YME"
+        };
 
         // If running in Canvas and __firebase_config is provided, use it. Otherwise, use the hardcoded one.
         const finalFirebaseConfig = Object.keys(firebaseConfigFromCanvas).length > 0 ? firebaseConfigFromCanvas : firebaseConfig;
@@ -481,7 +472,7 @@ const analytics = getAnalytics(app);
         let app;
         let db;
         let auth;
-        let analytics; // Declare analytics variable
+        let analytics;
         let currentUserId = null;
         let isAuthReady = false; // Flag to ensure auth is ready before Firestore ops
 
@@ -496,7 +487,6 @@ const analytics = getAnalytics(app);
                     analytics = getAnalytics(app);
                     console.log("Firebase Analytics initialized.");
                 }
-
 
                 // Listen for authentication state changes
                 onAuthStateChanged(auth, async (user) => {
