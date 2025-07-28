@@ -452,17 +452,27 @@
         const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
 
-        // --- Firebase Configuration (REPLACE WITH YOUR ACTUAL FIREBASE CONFIG) ---
-        // You MUST replace this with the firebaseConfig object you copied from your Firebase project.
-        const firebaseConfig = {
-            apiKey: "AIzaSyD4fBs0c6dIycDbuFew1355aDuJYgMm8Q0",
-            authDomain: "smart-school-shop-app.firebaseapp.com",
-            projectId: "smart-school-shop-app",
-            storageBucket: "smart-school-shop-app.firebasestorage.app",
-            messagingSenderId: "334558132445",
-            appId: "1:334558132445:web:998241d5bd4672d24ec334",
-            measurementId: "G-EX61980YME"
-        };
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyD4fBs0c6dIycDbuFew1355aDuJYgMm8Q0",
+  authDomain: "smart-school-shop-app.firebaseapp.com",
+  projectId: "smart-school-shop-app",
+  storageBucket: "smart-school-shop-app.firebasestorage.app",
+  messagingSenderId: "334558132445",
+  appId: "1:334558132445:web:998241d5bd4672d24ec334",
+  measurementId: "G-EX61980YME"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
         // If running in Canvas and __firebase_config is provided, use it. Otherwise, use the hardcoded one.
         const finalFirebaseConfig = Object.keys(firebaseConfigFromCanvas).length > 0 ? firebaseConfigFromCanvas : firebaseConfig;
