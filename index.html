@@ -51,6 +51,8 @@
         input[type="text"],
         input[type="number"],
         input[type="date"],
+        input[type="email"], /* Added for email input */
+        input[type="password"], /* Added for password input */
         select,
         textarea {
             border: 1px solid #cbd5e1; /* Light gray border */
@@ -95,6 +97,9 @@
         }
         .message-box.error {
             background-color: #f44336; /* Red for error */
+        }
+        .message-box.info { /* Added for info messages */
+            background-color: #2196F3; /* Blue for info */
         }
         .tab-button {
             padding: 0.75rem 1.5rem;
@@ -446,7 +451,40 @@
                 </table>
             </div>
         </div>
-    </div>
+
+        <div id="authSection" class="card mt-8 hidden">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Autentikasi Pengguna</h2>
+
+            <div class="mb-4">
+                <button class="btn-primary mr-2" onclick="showAuthForm('login')">Login</button>
+                <button class="btn-secondary" onclick="showAuthForm('register')">Daftar Akun Baru</button>
+            </div>
+
+            <form id="loginForm" class="hidden">
+                <h3 class="text-xl font-semibold mb-3 text-indigo-600">Login</h3>
+                <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-1">Email:</label>
+                <input type="email" id="loginEmail" placeholder="email@contoh.com" required class="mb-2">
+
+                <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-1">Kata Sandi:</label>
+                <input type="password" id="loginPassword" placeholder="Kata Sandi" required class="mb-4">
+
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+
+            <form id="registerForm" class="hidden">
+                <h3 class="text-xl font-semibold mb-3 text-indigo-600">Daftar Akun Baru</h3>
+                <label for="registerEmail" class="block text-sm font-medium text-gray-700 mb-1">Email:</label>
+                <input type="email" id="registerEmail" placeholder="email@contoh.com" required class="mb-2">
+
+                <label for="registerPassword" class="block text-sm font-medium text-gray-700 mb-1">Kata Sandi:</label>
+                <input type="password" id="registerPassword" placeholder="Minimal 6 karakter" required class="mb-4">
+
+                <button type="submit" class="btn-primary">Daftar</button>
+            </form>
+
+            <button id="logoutButton" class="btn-secondary mt-4 hidden" onclick="logoutUser()">Logout</button>
+        </div>
+        </div>
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
@@ -456,7 +494,8 @@
     <script type="module">
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+                 createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, setDoc, doc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
@@ -521,26 +560,35 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         currentUserId = user.uid;
-                        document.getElementById('userIdDisplay').textContent = `User ID: ${currentUserId}`;
+                        // Display user ID and type of authentication
+                        document.getElementById('userIdDisplay').textContent = `User ID: ${currentUserId} (${user.isAnonymous ? 'Anonim' : 'Terautentikasi'})`;
                         isAuthReady = true;
                         console.log("Firebase Authenticated. User ID:", currentUserId);
-                        loadAllData();
-                        enableUI(); // Enable UI once authenticated and data loading starts
+
+                        // Hide authentication forms, show logout button
+                        document.getElementById('authSection').classList.add('hidden'); // Hide the auth section initially
+                        document.getElementById('logoutButton').classList.remove('hidden');
+
+                        // Show main app tabs
+                        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('hidden'));
+                        document.getElementById('authSection').classList.add('hidden'); // Ensure auth section is hidden
+
+                        loadAllData(); // Load data once authenticated
+                        enableUI(); // Enable UI once authentication is confirmed
                     } else {
-                        console.log("No user logged in, attempting anonymous sign-in...");
-                        try {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                                console.log("Signed in with custom token.");
-                            } else {
-                                await signInAnonymously(auth);
-                                console.log("Signed in anonymously.");
-                            }
-                        } catch (error) {
-                            console.error("Error signing in anonymously:", error);
-                            showMessage("Gagal login ke Firebase. Coba muat ulang halaman atau periksa koneksi internet.", "error");
-                            // Keep UI disabled if sign-in fails
-                        }
+                        console.log("No user logged in. Showing authentication forms.");
+                        currentUserId = null; // Reset user ID if no one is logged in
+                        isAuthReady = false;
+
+                        // Hide main app tabs, show authentication section
+                        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden')); // Hide all content tabs
+                        document.getElementById('authSection').classList.remove('hidden'); // Show authentication section
+                        document.getElementById('loginForm').classList.remove('hidden'); // Default to showing login form
+                        document.getElementById('registerForm').classList.add('hidden');
+                        document.getElementById('logoutButton').classList.add('hidden');
+                        
+                        enableUI(); // Enable UI to allow user to login/register
+                        showMessage("Anda belum login. Silakan daftar atau masuk.", "info");
                     }
                 });
             } catch (error) {
@@ -551,9 +599,9 @@
         }
 
         function getCollectionRef(collectionName) {
+            // Check if currentUserId is available before getting collection reference
             if (!db || !currentUserId || !appId) {
-                console.error("Firestore DB, User ID, or App ID not ready for collection:", collectionName);
-                showMessage("Database belum siap. Coba muat ulang halaman.", "error");
+                console.warn(`Firestore DB, User ID, or App ID not ready for collection: ${collectionName}. Data will not be loaded/saved.`);
                 return null;
             }
             return collection(db, `artifacts/${appId}/users/${currentUserId}/${collectionName}`);
@@ -589,13 +637,14 @@
         let attendance = [];
 
         function loadAllData() {
-            if (!isAuthReady) {
-                console.warn("Authentication not ready, cannot load data.");
+            if (!isAuthReady || !currentUserId) {
+                console.warn("Authentication not ready or user not logged in, cannot load data.");
                 return;
             }
-            console.log("Loading all data from Firestore...");
+            console.log("Loading all data from Firestore for user:", currentUserId);
 
-            onSnapshot(getCollectionRef('products'), (snapshot) => {
+            // Using optional chaining (?.) and nullish coalescing (??) for safety
+            onSnapshot(getCollectionRef('products') ?? collection(db, 'dummy/path/products'), (snapshot) => {
                 products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderProducts();
                 populateProductDropdowns();
@@ -606,7 +655,7 @@
                 showMessage("Gagal memuat produk dari database.", "error");
             });
 
-            onSnapshot(getCollectionRef('sales'), (snapshot) => {
+            onSnapshot(getCollectionRef('sales') ?? collection(db, 'dummy/path/sales'), (snapshot) => {
                 sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderSales();
                 updateDashboard();
@@ -616,7 +665,7 @@
                 showMessage("Gagal memuat penjualan dari database.", "error");
             });
 
-            onSnapshot(getCollectionRef('expenses'), (snapshot) => {
+            onSnapshot(getCollectionRef('expenses') ?? collection(db, 'dummy/path/expenses'), (snapshot) => {
                 expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderExpenses();
                 updateDashboard();
@@ -626,7 +675,7 @@
                 showMessage("Gagal memuat pengeluaran dari database.", "error");
             });
 
-            onSnapshot(getCollectionRef('students'), (snapshot) => {
+            onSnapshot(getCollectionRef('students') ?? collection(db, 'dummy/path/students'), (snapshot) => {
                 students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderStudents();
                 populateStudentDropdowns();
@@ -636,7 +685,7 @@
                 showMessage("Gagal memuat data siswa dari database.", "error");
             });
 
-            onSnapshot(getCollectionRef('attendance'), (snapshot) => {
+            onSnapshot(getCollectionRef('attendance') ?? collection(db, 'dummy/path/attendance'), (snapshot) => {
                 attendance = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAttendance();
                 console.log("Attendance loaded:", attendance.length);
@@ -647,16 +696,21 @@
         }
 
         window.showTab = function(tabId) {
+            // Hide all content tabs first
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.add('hidden');
             });
+            // Deactivate all tab buttons
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.remove('active');
             });
 
+            // Show the selected tab content
             document.getElementById(tabId).classList.remove('hidden');
+            // Activate the corresponding tab button
             document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
 
+            // Additional updates for specific tabs
             if (tabId === 'dashboard') updateDashboard();
         }
 
@@ -700,7 +754,7 @@
         async function addSale(newSale) {
             try {
                 const salesColRef = getCollectionRef('sales');
-                if (!salesColRef) return;
+                if (!salesColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await addDoc(salesColRef, newSale);
                 showMessage('Penjualan berhasil dicatat!');
             } catch (e) {
@@ -710,11 +764,10 @@
         }
 
         async function deleteSale(id) {
-            // Replaced alert/confirm with custom message box for better UX
             showMessage("Menghapus penjualan...", "info");
             try {
                 const salesColRef = getCollectionRef('sales');
-                if (!salesColRef) return;
+                if (!salesColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await deleteDoc(doc(salesColRef, id));
                 showMessage('Penjualan berhasil dihapus.');
             } catch (e) {
@@ -792,7 +845,7 @@
         async function addExpense(newExpense) {
             try {
                 const expensesColRef = getCollectionRef('expenses');
-                if (!expensesColRef) return;
+                if (!expensesColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await addDoc(expensesColRef, newExpense);
                 showMessage('Pengeluaran berhasil dicatat!');
             } catch (e) {
@@ -805,7 +858,7 @@
             showMessage("Menghapus pengeluaran...", "info");
             try {
                 const expensesColRef = getCollectionRef('expenses');
-                if (!expensesColRef) return;
+                if (!expensesColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await deleteDoc(doc(expensesColRef, id));
                 showMessage('Pengeluaran berhasil dihapus.');
             } catch (e) {
@@ -866,7 +919,7 @@
         async function addOrUpdateProduct(productData, productId = null) {
             try {
                 const productsColRef = getCollectionRef('products');
-                if (!productsColRef) return;
+                if (!productsColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 if (productId) {
                     await setDoc(doc(productsColRef, productId), productData);
                     showMessage('Produk berhasil diupdate!');
@@ -883,7 +936,7 @@
         async function updateProductStock(productId, newStock) {
             try {
                 const productsColRef = getCollectionRef('products');
-                if (!productsColRef) return;
+                if (!productsColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await setDoc(doc(productsColRef, productId), { stock: newStock }, { merge: true });
                 console.log("Stok produk berhasil diupdate.");
             } catch (e) {
@@ -896,7 +949,7 @@
             showMessage("Menghapus produk...", "info");
             try {
                 const productsColRef = getCollectionRef('products');
-                if (!productsColRef) return;
+                if (!productsColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await deleteDoc(doc(productsColRef, id));
                 showMessage('Produk berhasil dihapus.');
             } catch (e) {
@@ -1010,7 +1063,7 @@
         async function addStudent(newStudent) {
             try {
                 const studentsColRef = getCollectionRef('students');
-                if (!studentsColRef) return;
+                if (!studentsColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await addDoc(studentsColRef, newStudent);
                 showMessage('Siswa berhasil ditambahkan!');
             } catch (e) {
@@ -1023,7 +1076,7 @@
             showMessage("Menghapus siswa...", "info");
             try {
                 const studentsColRef = getCollectionRef('students');
-                if (!studentsColRef) return;
+                if (!studentsColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await deleteDoc(doc(studentsColRef, id));
                 showMessage('Siswa berhasil dihapus.');
             } catch (e) {
@@ -1105,7 +1158,7 @@
         async function addAttendance(newRecord) {
             try {
                 const attendanceColRef = getCollectionRef('attendance');
-                if (!attendanceColRef) return;
+                if (!attendanceColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
                 await addDoc(attendanceColRef, newRecord);
                 showMessage('Kehadiran siswa berhasil dicatat!');
             } catch (e) {
@@ -1118,8 +1171,8 @@
             showMessage("Menghapus catatan kehadiran...", "info");
             try {
                 const attendanceColRef = getCollectionRef('attendance');
-                if (!attendanceColRef) return;
-                await deleteDoc(doc(attendanceColRef, id)); // BARIS 1141: Kurung tutup ekstra telah dihapus
+                if (!attendanceColRef) { showMessage("Belum login. Silakan login terlebih dahulu.", "error"); return; }
+                await deleteDoc(doc(attendanceColRef, id));
                 showMessage('Catatan kehadiran berhasil dihapus.');
             } catch (e) {
                 console.error("Error deleting attendance: ", e);
@@ -1188,6 +1241,98 @@
             document.getElementById('attendanceDate').valueAsDate = new Date();
         });
 
+        // --- AUTENTIKASI FUNCTIONS (NEWLY ADDED) ---
+        window.showAuthForm = function(formType) {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            if (formType === 'login') {
+                document.getElementById('loginForm').classList.remove('hidden');
+            } else {
+                document.getElementById('registerForm').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            disableUI();
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                showMessage('Pendaftaran berhasil! Anda telah login.', 'success');
+                // onAuthStateChanged akan menangani pemuatan data dan perubahan UI
+            } catch (error) {
+                console.error("Error registering:", error.code, error.message);
+                let errorMessage = "Gagal mendaftar. ";
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage += "Email ini sudah terdaftar.";
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage += "Kata sandi terlalu lemah (minimal 6 karakter).";
+                } else {
+                    errorMessage += error.message;
+                }
+                showMessage(errorMessage, 'error');
+            } finally {
+                enableUI();
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            disableUI();
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showMessage('Login berhasil!', 'success');
+                // onAuthStateChanged akan menangani pemuatan data dan perubahan UI
+            } catch (error) {
+                console.error("Error logging in:", error.code, error.message);
+                let errorMessage = "Gagal login. ";
+                // Firebase v9+ often uses 'auth/invalid-credential' for both wrong-password and user-not-found
+                if (error.code === 'auth/invalid-credential') {
+                    errorMessage += "Email atau kata sandi salah.";
+                } else {
+                    errorMessage += error.message;
+                }
+                showMessage(errorMessage, 'error');
+            } finally {
+                enableUI();
+            }
+        });
+
+        window.logoutUser = async function() {
+            disableUI();
+            try {
+                await signOut(auth);
+                showMessage('Anda telah logout.', 'info');
+                // onAuthStateChanged akan mendeteksi logout dan menampilkan form login
+                // Anda mungkin juga ingin membersihkan data yang ditampilkan di UI setelah logout
+                clearAllDisplayData(); // Call a function to clear tables, dashboard etc.
+            } catch (error) {
+                console.error("Error logging out:", error);
+                showMessage("Gagal logout.", "error");
+            } finally {
+                enableUI();
+            }
+        }
+
+        // Optional: A helper function to clear all displayed data when logged out
+        function clearAllDisplayData() {
+            document.getElementById('totalSales').textContent = formatRupiah(0);
+            document.getElementById('totalExpenses').textContent = formatRupiah(0);
+            document.getElementById('netProfit').textContent = formatRupiah(0);
+            document.getElementById('recentTransactionsTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Belum ada transaksi.</td></tr>';
+            document.getElementById('salesTable').querySelector('tbody').innerHTML = '<tr><td colspan="8" class="text-center text-gray-500">Belum ada data penjualan.</td></tr>';
+            document.getElementById('expensesTable').querySelector('tbody').innerHTML = '<tr><td colspan="6" class="text-center text-gray-500">Belum ada data pengeluaran.</td></tr>';
+            document.getElementById('stockTable').querySelector('tbody').innerHTML = '<tr><td colspan="7" class="text-center text-gray-500">Belum ada produk. Tambahkan produk baru.</td></tr>';
+            document.getElementById('studentsTable').querySelector('tbody').innerHTML = '<tr><td colspan="3" class="text-center text-gray-500">Belum ada siswa. Tambahkan siswa baru.</td></tr>';
+            document.getElementById('attendanceTable').querySelector('tbody').innerHTML = '<tr><td colspan="6" class="text-center text-gray-500">Belum ada data kehadiran.</td></tr>';
+            document.getElementById('userIdDisplay').textContent = `User ID: Tidak Login`;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('saleDate').value = today;
@@ -1195,7 +1340,7 @@
             document.getElementById('attendanceDate').value = today;
 
             initializeFirebase();
-            showTab('dashboard');
+            // showTab('dashboard'); // Initial tab will be handled by onAuthStateChanged based on login status
         });
     </script>
 </body>
