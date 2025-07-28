@@ -442,6 +442,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, setDoc, doc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Import getAnalytics
 
         // --- Global Variables (Canvas Injected) ---
         // These variables are provided by the Canvas environment at runtime.
@@ -453,15 +454,14 @@
 
         // --- Firebase Configuration (REPLACE WITH YOUR ACTUAL FIREBASE CONFIG) ---
         // You MUST replace this with the firebaseConfig object you copied from your Firebase project.
-        // Example:
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY", // Ganti dengan API Key Anda
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // Ganti dengan authDomain Anda
-            projectId: "YOUR_PROJECT_ID", // Ganti dengan Project ID Anda
-            storageBucket: "YOUR_PROJECT_ID.appspot.com", // Ganti dengan storageBucket Anda
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Ganti dengan messagingSenderId Anda
-            appId: "YOUR_APP_ID" // Ganti dengan App ID Anda
-            // measurementId: "G-XXXXXXXXXX" // Optional, jika ada
+            apiKey: "AIzaSyD4fBs0c6dIycDbuFew1355aDuJYgMm8Q0",
+            authDomain: "smart-school-shop-app.firebaseapp.com",
+            projectId: "smart-school-shop-app",
+            storageBucket: "smart-school-shop-app.firebasestorage.app",
+            messagingSenderId: "334558132445",
+            appId: "1:334558132445:web:998241d5bd4672d24ec334",
+            measurementId: "G-EX61980YME"
         };
 
         // If running in Canvas and __firebase_config is provided, use it. Otherwise, use the hardcoded one.
@@ -471,6 +471,7 @@
         let app;
         let db;
         let auth;
+        let analytics; // Declare analytics variable
         let currentUserId = null;
         let isAuthReady = false; // Flag to ensure auth is ready before Firestore ops
 
@@ -480,6 +481,12 @@
                 app = initializeApp(finalFirebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
+                // Initialize Analytics if measurementId is present
+                if (finalFirebaseConfig.measurementId) {
+                    analytics = getAnalytics(app);
+                    console.log("Firebase Analytics initialized.");
+                }
+
 
                 // Listen for authentication state changes
                 onAuthStateChanged(auth, async (user) => {
