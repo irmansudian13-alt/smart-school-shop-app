@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART School SHOP App</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            color: #334155; /* Dark slate gray text */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* Rounded corners */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-primary {
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary:hover {
+            background-color: #4338ca; /* Darker indigo */
+        }
+        .btn-secondary {
+            background-color: #64748b; /* Slate gray */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-secondary:hover {
+            background-color: #475569; /* Darker slate gray */
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            border: 1px solid #cbd5e1; /* Light gray border */
+            border-radius: 0.375rem;
+            padding: 0.625rem 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 1rem;
+            background-color: #f8fafc; /* Lighter background for inputs */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #e2e8f0; /* Lighter gray border */
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #e0e7ff; /* Light indigo for table headers */
+            font-weight: 600;
+            color: #334155;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc; /* Zebra striping for table rows */
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50; /* Green for success */
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .message-box.error {
+            background-color: #f44336; /* Red for error */
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            background-color: #e2e8f0;
+            color: #475569;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .tab-button.active {
+            background-color: #4f46e5;
+            color: white;
+        }
+        .tab-content {
+            border-top: 2px solid #4f46e5;
+            padding-top: 1.5rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container py-8">
+        <h1 class="text-4xl font-bold text-center mb-8 text-indigo-700">SMART School SHOP App</h1>
+
+        <!-- Message Box for notifications -->
+        <div id="messageBox" class="message-box"></div>
+
+        <!-- Tab Navigation -->
+        <div class="flex mb-4">
+            <button class="tab-button active" onclick="showTab('dashboard')">Dashboard</button>
+            <button class="tab-button" onclick="showTab('sales')">Penjualan</button>
+            <button class="tab-button" onclick="showTab('expenses')">Pengeluaran</button>
+            <button class="tab-button" onclick="showTab('stock')">Stok Barang</button>
+            <button class="tab-button" onclick="showTab('attendance')">Daftar Hadir Siswa</button>
+            <button class="tab-button" onclick="showTab('settings')">Pengaturan</button>
+        </div>
+
+        <!-- Dashboard Tab Content -->
+        <div id="dashboard" class="tab-content card">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Ringkasan Keuangan</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-100 p-4 rounded-lg shadow-sm">
+                    <p class="text-lg font-medium">Total Penjualan:</p>
+                    <p id="totalSales" class="text-3xl font-bold text-blue-700">Rp 0</p>
+                </div>
+                <div class="bg-red-100 p-4 rounded-lg shadow-sm">
+                    <p class="text-lg font-medium">Total Pengeluaran:</p>
+                    <p id="totalExpenses" class="text-3xl font-bold text-red-700">Rp 0</p>
+                </div>
+                <div class="bg-green-100 p-4 rounded-lg shadow-sm">
+                    <p class="text-lg font-medium">Laba Bersih:</p>
+                    <p id="netProfit" class="text-3xl font-bold text-green-700">Rp 0</p>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-semibold mb-3 text-indigo-600">Transaksi Terakhir</h3>
+            <div class="overflow-x-auto">
+                <table id="recentTransactionsTable">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Tipe</th>
+                            <th>Deskripsi</th>
+                            <th>Jumlah (Rp)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Recent transactions will be loaded here by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sales Tab Content -->
+        <div id="sales" class="tab-content card hidden">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Catat Penjualan Baru</h2>
+            <form id="salesForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="saleProduct" class="block text-sm font-medium text-gray-700 mb-1">Produk:</label>
+                    <select id="saleProduct" required>
+                        <option value="">Pilih Produk</option>
+                        <!-- Products will be loaded here by JS -->
+                    </select>
+                </div>
+                <div>
+                    <label for="saleQuantity" class="block text-sm font-medium text-gray-700 mb-1">Jumlah:</label>
+                    <input type="number" id="saleQuantity" min="1" value="1" required>
+                </div>
+                <div>
+                    <label for="saleMethod" class="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran:</label>
+                    <select id="saleMethod" required>
+                        <option value="QRIS DANA">QRIS DANA</option>
+                        <option value="Tunai">Tunai</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="saleDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal:</label>
+                    <input type="date" id="saleDate" required>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="saleAttendant" class="block text-sm font-medium text-gray-700 mb-1">Petugas Penjual:</label>
+                    <select id="saleAttendant" required>
+                        <option value="">Pilih Siswa</option>
+                        <!-- Students will be loaded here by JS -->
+                    </select>
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="submit" class="btn-primary">Catat Penjualan</button>
+                </div>
+            </form>
+
+            <h3 class="text-xl font-semibold mt-8 mb-3 text-indigo-600">Daftar Penjualan</h3>
+            <div class="overflow-x-auto">
+                <table id="salesTable">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Produk</th>
+                            <th>Jumlah</th>
+                            <th>Harga Satuan (Rp)</th>
+                            <th>Total (Rp)</th>
+                            <th>Metode</th>
+                            <th>Petugas</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Sales records will be loaded here by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Expenses Tab Content -->
+        <div id="expenses" class="tab-content card hidden">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Catat Pengeluaran Baru</h2>
+            <form id="expenseForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="expenseType" class="block text-sm font-medium text-gray-700 mb-1">Jenis Pengeluaran:</label>
+                    <select id="expenseType" required>
+                        <option value="">Pilih Jenis</option>
+                        <option value="Pembelian Stok">Pembelian Stok</option>
+                        <option value="Biaya Promosi">Biaya Promosi</option>
+                        <option value="Biaya Listrik">Biaya Listrik</option>
+                        <option value="Lain-lain">Lain-lain</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp):</label>
+                    <input type="number" id="expenseAmount" min="1" required>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi:</label>
+                    <textarea id="expenseDescription" rows="2" placeholder="Contoh: Pembelian seragam dari Vendor X" required></textarea>
+                </div>
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal:</label>
+                    <input type="date" id="expenseDate" required>
+                </div>
+                <div>
+                    <label for="expenseAttendant" class="block text-sm font-medium text-gray-700 mb-1">Petugas Pencatat:</label>
+                    <select id="expenseAttendant" required>
+                        <option value="">Pilih Siswa</option>
+                        <!-- Students will be loaded here by JS -->
+                    </select>
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="submit" class="btn-primary">Catat Pengeluaran</button>
+                </div>
+            </form>
+
+            <h3 class="text-xl font-semibold mt-8 mb-3 text-indigo-600">Daftar Pengeluaran</h3>
+            <div class="overflow-x-auto">
+                <table id="expensesTable">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Jenis</th>
+                            <th>Deskripsi</th>
+                            <th>Jumlah (Rp)</th>
+                            <th>Petugas</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Expense records will be loaded here by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stock Tab Content -->
+        <div id="stock" class="tab-content card hidden">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Manajemen Stok Barang</h2>
+
+            <h3 class="text-xl font-semibold mb-3 text-indigo-600">Tambah/Edit Produk</h3>
+            <form id="productForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="productName" class="block text-sm font-medium text-gray-700 mb-1">Nama Produk:</label>
+                    <input type="text" id="productName" placeholder="Contoh: Baju Seragam Putih Abu" required>
+                </div>
+                <div>
+                    <label for="productSize" class="block text-sm font-medium text-gray-700 mb-1">Ukuran (Opsional):</label>
+                    <input type="text" id="productSize" placeholder="Contoh: S, M, L, XL atau 'All Size'">
+                </div>
+                <div>
+                    <label for="productBuyPrice" class="block text-sm font-medium text-gray-700 mb-1">Harga Beli (Modal Rp):</label>
+                    <input type="number" id="productBuyPrice" min="0" required>
+                </div>
+                <div>
+                    <label for="productSellPrice" class="block text-sm font-medium text-gray-700 mb-1">Harga Jual (Rp):</label>
+                    <input type="number" id="productSellPrice" min="0" required>
+                </div>
+                <div>
+                    <label for="productStock" class="block text-sm font-medium text-gray-700 mb-1">Stok Awal:</label>
+                    <input type="number" id="productStock" min="0" value="0" required>
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="submit" class="btn-primary">Tambah/Update Produk</button>
+                </div>
+            </form>
+
+            <h3 class="text-xl font-semibold mt-8 mb-3 text-indigo-600">Daftar Stok</h3>
+            <div class="overflow-x-auto">
+                <table id="stockTable">
+                    <thead>
+                        <tr>
+                            <th>Nama Produk</th>
+                            <th>Ukuran</th>
+                            <th>Harga Beli (Rp)</th>
+                            <th>Harga Jual (Rp)</th>
+                            <th>Stok</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Stock records will be loaded here by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Attendance Tab Content -->
+        <div id="attendance" class="tab-content card hidden">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Catat Daftar Hadir Siswa</h2>
+            <form id="attendanceForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="attendanceDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal:</label>
+                    <input type="date" id="attendanceDate" required>
+                </div>
+                <div>
+                    <label for="attendanceShift" class="block text-sm font-medium text-gray-700 mb-1">Shift/Waktu Tugas:</label>
+                    <input type="text" id="attendanceShift" placeholder="Contoh: Pagi (08:00-12:00)" required>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="attendanceStudent" class="block text-sm font-medium text-gray-700 mb-1">Nama Siswa:</label>
+                    <select id="attendanceStudent" required>
+                        <option value="">Pilih Siswa</option>
+                        <!-- Students will be loaded here by JS -->
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="attendanceStatus" class="block text-sm font-medium text-gray-700 mb-1">Status Kehadiran:</label>
+                    <select id="attendanceStatus" required>
+                        <option value="Hadir">Hadir</option>
+                        <option value="Izin">Izin</option>
+                        <option value="Sakit">Sakit</option>
+                        <option value="Alpha">Alpha</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="submit" class="btn-primary">Catat Kehadiran</button>
+                </div>
+            </form>
+
+            <h3 class="text-xl font-semibold mt-8 mb-3 text-indigo-600">Daftar Kehadiran</h3>
+            <div class="overflow-x-auto">
+                <table id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Shift</th>
+                            <th>Nama Siswa</th>
+                            <th>Jurusan</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Attendance records will be loaded here by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Settings Tab Content -->
+        <div id="settings" class="tab-content card hidden">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Pengaturan Data Master</h2>
+
+            <h3 class="text-xl font-semibold mb-3 text-indigo-600">Manajemen Siswa (Petugas SPW)</h3>
+            <form id="studentForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="studentName" class="block text-sm font-medium text-gray-700 mb-1">Nama Siswa:</label>
+                    <input type="text" id="studentName" placeholder="Contoh: Budi Santoso" required>
+                </div>
+                <div>
+                    <label for="studentMajor" class="block text-sm font-medium text-gray-700 mb-1">Jurusan:</label>
+                    <select id="studentMajor" required>
+                        <option value="">Pilih Jurusan</option>
+                        <option value="TO">TO</option>
+                        <option value="TM">TM</option>
+                        <option value="TL">TL</option>
+                        <option value="TKJ">TKJ</option>
+                        <option value="DPIB">DPIB</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="submit" class="btn-primary">Tambah Siswa</button>
+                </div>
+            </form>
+
+            <h3 class="text-xl font-semibold mt-8 mb-3 text-indigo-600">Daftar Siswa</h3>
+            <div class="overflow-x-auto">
+                <table id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th>Nama Siswa</th>
+                            <th>Jurusan</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Student records will be loaded here by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data Storage (using localStorage for simplicity) ---
+        // For a more robust, multi-user application, consider using a cloud database like Firebase Firestore.
+        let products = JSON.parse(localStorage.getItem('smartSchoolShop_products')) || [];
+        let sales = JSON.parse(localStorage.getItem('smartSchoolShop_sales')) || [];
+        let expenses = JSON.parse(localStorage.getItem('smartSchoolShop_expenses')) || [];
+        let students = JSON.parse(localStorage.getItem('smartSchoolShop_students')) || [];
+        let attendance = JSON.parse(localStorage.getItem('smartSchoolShop_attendance')) || [];
+
+        // --- Utility Functions ---
+
+        // Function to save all data to localStorage
+        function saveData() {
+            localStorage.setItem('smartSchoolShop_products', JSON.stringify(products));
+            localStorage.setItem('smartSchoolShop_sales', JSON.stringify(sales));
+            localStorage.setItem('smartSchoolShop_expenses', JSON.stringify(expenses));
+            localStorage.setItem('smartSchoolShop_students', JSON.stringify(students));
+            localStorage.setItem('smartSchoolShop_attendance', JSON.stringify(attendance));
+        }
+
+        // Function to display messages to the user
+        function showMessage(message, type = 'success') {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`; // Add type class for styling (success/error)
+            messageBox.style.display = 'block';
+            messageBox.style.opacity = '1';
+
+            setTimeout(() => {
+                messageBox.style.opacity = '0';
+                setTimeout(() => {
+                    messageBox.style.display = 'none';
+                }, 300); // Hide after fade out
+            }, 3000); // Display for 3 seconds
+        }
+
+        // Function to format number to IDR currency
+        function formatRupiah(number) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(number);
+        }
+
+        // --- Tab Management ---
+        function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            // Deactivate all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show the selected tab content
+            document.getElementById(tabId).classList.remove('hidden');
+            // Activate the corresponding tab button
+            document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+
+            // Refresh data when switching tabs
+            if (tabId === 'dashboard') updateDashboard();
+            if (tabId === 'sales') renderSales();
+            if (tabId === 'expenses') renderExpenses();
+            if (tabId === 'stock') renderProducts();
+            if (tabId === 'attendance') renderAttendance();
+            if (tabId === 'settings') renderStudents();
+        }
+
+        // --- Dashboard Functions ---
+        function updateDashboard() {
+            const totalSales = sales.reduce((sum, item) => sum + item.totalPrice, 0);
+            const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+            const netProfit = totalSales - totalExpenses;
+
+            document.getElementById('totalSales').textContent = formatRupiah(totalSales);
+            document.getElementById('totalExpenses').textContent = formatRupiah(totalExpenses);
+            document.getElementById('netProfit').textContent = formatRupiah(netProfit);
+
+            renderRecentTransactions();
+        }
+
+        function renderRecentTransactions() {
+            const tableBody = document.getElementById('recentTransactionsTable').querySelector('tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            // Combine sales and expenses, sort by date, and take the latest 5
+            const allTransactions = [
+                ...sales.map(s => ({ date: s.date, type: 'Penjualan', description: `${s.productName} (${s.quantity})`, amount: s.totalPrice })),
+                ...expenses.map(e => ({ date: e.date, type: 'Pengeluaran', description: e.description, amount: -e.amount })) // Negative for expenses
+            ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
+            if (allTransactions.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Belum ada transaksi.</td></tr>';
+                return;
+            }
+
+            allTransactions.forEach(trans => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = trans.date;
+                row.insertCell().textContent = trans.type;
+                row.insertCell().textContent = trans.description;
+                const amountCell = row.insertCell();
+                amountCell.textContent = formatRupiah(trans.amount);
+                amountCell.className = trans.amount >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
+            });
+        }
+
+        // --- Sales Functions ---
+        function renderSales() {
+            const tableBody = document.getElementById('salesTable').querySelector('tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            if (sales.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500">Belum ada data penjualan.</td></tr>';
+                return;
+            }
+
+            sales.forEach((sale, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = sale.date;
+                row.insertCell().textContent = sale.productName;
+                row.insertCell().textContent = sale.quantity;
+                row.insertCell().textContent = formatRupiah(sale.unitPrice);
+                row.insertCell().textContent = formatRupiah(sale.totalPrice);
+                row.insertCell().textContent = sale.method;
+                row.insertCell().textContent = sale.attendant;
+
+                // Action buttons for delete
+                const actionCell = row.insertCell();
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Hapus';
+                deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
+                deleteBtn.onclick = () => deleteSale(index);
+                actionCell.appendChild(deleteBtn);
+            });
+            populateProductDropdowns(); // Refresh product dropdown in sales form
+            populateStudentDropdowns(); // Refresh student dropdown in sales form
+            document.getElementById('saleDate').valueAsDate = new Date(); // Set default date
+        }
+
+        document.getElementById('salesForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const productName = document.getElementById('saleProduct').value;
+            const quantity = parseInt(document.getElementById('saleQuantity').value);
+            const method = document.getElementById('saleMethod').value;
+            const date = document.getElementById('saleDate').value;
+            const attendant = document.getElementById('saleAttendant').value;
+
+            const product = products.find(p => `${p.name} ${p.size}`.trim() === productName);
+
+            if (!product) {
+                showMessage('Produk tidak ditemukan. Harap tambahkan produk di tab Stok Barang.', 'error');
+                return;
+            }
+            if (product.stock < quantity) {
+                showMessage(`Stok ${product.name} (${product.size || 'All Size'}) tidak mencukupi. Tersedia: ${product.stock}`, 'error');
+                return;
+            }
+
+            const newSale = {
+                id: Date.now(), // Unique ID
+                date: date,
+                productName: productName,
+                quantity: quantity,
+                unitPrice: product.sellPrice,
+                totalPrice: product.sellPrice * quantity,
+                method: method,
+                attendant: attendant
+            };
+
+            sales.push(newSale);
+            product.stock -= quantity; // Decrease stock
+            saveData();
+            renderSales();
+            updateDashboard();
+            renderProducts(); // Update stock table
+            showMessage('Penjualan berhasil dicatat!');
+            this.reset();
+            document.getElementById('saleDate').valueAsDate = new Date(); // Reset date
+        });
+
+        function deleteSale(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus penjualan ini? Stok tidak akan dikembalikan secara otomatis.')) {
+                const deletedSale = sales.splice(index, 1)[0];
+                // Optionally, if you want to return stock, you need to find the product and add back the quantity.
+                // This makes deletion more complex, so for simplicity, we'll just delete the record.
+                // For a real app, you'd handle this with a proper reversal or adjustment.
+                saveData();
+                renderSales();
+                updateDashboard();
+                showMessage('Penjualan berhasil dihapus.');
+            }
+        }
+
+        // --- Expenses Functions ---
+        function renderExpenses() {
+            const tableBody = document.getElementById('expensesTable').querySelector('tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            if (expenses.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500">Belum ada data pengeluaran.</td></tr>';
+                return;
+            }
+
+            expenses.forEach((expense, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = expense.date;
+                row.insertCell().textContent = expense.type;
+                row.insertCell().textContent = expense.description;
+                row.insertCell().textContent = formatRupiah(expense.amount);
+                row.insertCell().textContent = expense.attendant;
+
+                // Action buttons for delete
+                const actionCell = row.insertCell();
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Hapus';
+                deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
+                deleteBtn.onclick = () => deleteExpense(index);
+                actionCell.appendChild(deleteBtn);
+            });
+            populateStudentDropdowns(); // Refresh student dropdown in expense form
+            document.getElementById('expenseDate').valueAsDate = new Date(); // Set default date
+        }
+
+        document.getElementById('expenseForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const type = document.getElementById('expenseType').value;
+            const amount = parseInt(document.getElementById('expenseAmount').value);
+            const description = document.getElementById('expenseDescription').value;
+            const date = document.getElementById('expenseDate').value;
+            const attendant = document.getElementById('expenseAttendant').value;
+
+            const newExpense = {
+                id: Date.now(), // Unique ID
+                date: date,
+                type: type,
+                amount: amount,
+                description: description,
+                attendant: attendant
+            };
+
+            expenses.push(newExpense);
+            saveData();
+            renderExpenses();
+            updateDashboard();
+            showMessage('Pengeluaran berhasil dicatat!');
+            this.reset();
+            document.getElementById('expenseDate').valueAsDate = new Date(); // Reset date
+        });
+
+        function deleteExpense(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus pengeluaran ini?')) {
+                expenses.splice(index, 1);
+                saveData();
+                renderExpenses();
+                updateDashboard();
+                showMessage('Pengeluaran berhasil dihapus.');
+            }
+        }
+
+        // --- Product/Stock Functions ---
+        function renderProducts() {
+            const tableBody = document.getElementById('stockTable').querySelector('tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            if (products.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500">Belum ada produk. Tambahkan produk baru.</td></tr>';
+                return;
+            }
+
+            products.forEach((product, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = product.name;
+                row.insertCell().textContent = product.size || '-';
+                row.insertCell().textContent = formatRupiah(product.buyPrice);
+                row.insertCell().textContent = formatRupiah(product.sellPrice);
+                row.insertCell().textContent = product.stock;
+
+                const statusCell = row.insertCell();
+                if (product.stock <= 5 && product.stock > 0) { // Example threshold for 'Menipis'
+                    statusCell.textContent = 'Menipis';
+                    statusCell.className = 'text-orange-500 font-semibold';
+                } else if (product.stock === 0) {
+                    statusCell.textContent = 'Habis';
+                    statusCell.className = 'text-red-500 font-semibold';
+                } else {
+                    statusCell.textContent = 'Cukup';
+                    statusCell.className = 'text-green-500';
+                }
+
+                // Action buttons for edit and delete
+                const actionCell = row.insertCell();
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.className = 'btn-primary text-sm px-3 py-1 mr-2';
+                editBtn.onclick = () => editProduct(index);
+                actionCell.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Hapus';
+                deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
+                deleteBtn.onclick = () => deleteProduct(index);
+                actionCell.appendChild(deleteBtn);
+            });
+            populateProductDropdowns(); // Refresh product dropdown in sales form
+        }
+
+        document.getElementById('productForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const name = document.getElementById('productName').value.trim();
+            const size = document.getElementById('productSize').value.trim();
+            const buyPrice = parseInt(document.getElementById('productBuyPrice').value);
+            const sellPrice = parseInt(document.getElementById('productSellPrice').value);
+            const stock = parseInt(document.getElementById('productStock').value);
+
+            // Check if product with same name and size already exists (for update)
+            const existingProductIndex = products.findIndex(p => p.name === name && p.size === size);
+
+            if (existingProductIndex > -1) {
+                // Update existing product
+                products[existingProductIndex].buyPrice = buyPrice;
+                products[existingProductIndex].sellPrice = sellPrice;
+                products[existingProductIndex].stock = stock; // Update stock directly
+                showMessage('Produk berhasil diupdate!');
+            } else {
+                // Add new product
+                const newProduct = {
+                    id: Date.now(), // Unique ID
+                    name: name,
+                    size: size,
+                    buyPrice: buyPrice,
+                    sellPrice: sellPrice,
+                    stock: stock
+                };
+                products.push(newProduct);
+                showMessage('Produk berhasil ditambahkan!');
+            }
+
+            saveData();
+            renderProducts();
+            this.reset(); // Clear form
+        });
+
+        function editProduct(index) {
+            const product = products[index];
+            document.getElementById('productName').value = product.name;
+            document.getElementById('productSize').value = product.size;
+            document.getElementById('productBuyPrice').value = product.buyPrice;
+            document.getElementById('productSellPrice').value = product.sellPrice;
+            document.getElementById('productStock').value = product.stock;
+            // You might want to add a hidden input or a flag to indicate editing mode
+            // For simplicity, we'll just pre-fill and the form submit will handle update if name/size match.
+            showMessage('Form produk diisi untuk diedit. Tekan "Tambah/Update Produk" untuk menyimpan perubahan.');
+        }
+
+        function deleteProduct(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus produk ini? Ini akan menghapus semua data produk terkait.')) {
+                products.splice(index, 1);
+                saveData();
+                renderProducts();
+                populateProductDropdowns(); // Update dropdowns
+                showMessage('Produk berhasil dihapus.');
+            }
+        }
+
+        // Populate product dropdowns in sales form
+        function populateProductDropdowns() {
+            const selectElement = document.getElementById('saleProduct');
+            selectElement.innerHTML = '<option value="">Pilih Produk</option>'; // Reset options
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = `${product.name} ${product.size}`.trim(); // Combine name and size for display
+                option.textContent = `${product.name} ${product.size ? `(${product.size})` : ''} - ${formatRupiah(product.sellPrice)}`;
+                selectElement.appendChild(option);
+            });
+        }
+
+        // --- Student Management Functions ---
+        function renderStudents() {
+            const tableBody = document.getElementById('studentsTable').querySelector('tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            if (students.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500">Belum ada siswa. Tambahkan siswa baru.</td></tr>';
+                return;
+            }
+
+            students.forEach((student, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = student.name;
+                row.insertCell().textContent = student.major;
+
+                // Action buttons for delete
+                const actionCell = row.insertCell();
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Hapus';
+                deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
+                deleteBtn.onclick = () => deleteStudent(index);
+                actionCell.appendChild(deleteBtn);
+            });
+            populateStudentDropdowns(); // Refresh student dropdowns in other forms
+        }
+
+        document.getElementById('studentForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const name = document.getElementById('studentName').value.trim();
+            const major = document.getElementById('studentMajor').value;
+
+            // Check for duplicate student names
+            if (students.some(s => s.name === name)) {
+                showMessage('Nama siswa sudah ada.', 'error');
+                return;
+            }
+
+            const newStudent = {
+                id: Date.now(), // Unique ID
+                name: name,
+                major: major
+            };
+
+            students.push(newStudent);
+            saveData();
+            renderStudents();
+            showMessage('Siswa berhasil ditambahkan!');
+            this.reset();
+        });
+
+        function deleteStudent(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus siswa ini? Ini akan menghapus siswa dari daftar master.')) {
+                students.splice(index, 1);
+                saveData();
+                renderStudents();
+                populateStudentDropdowns(); // Update dropdowns
+                showMessage('Siswa berhasil dihapus.');
+            }
+        }
+
+        // Populate student dropdowns in sales and expense forms
+        function populateStudentDropdowns() {
+            const salesAttendantSelect = document.getElementById('saleAttendant');
+            const expenseAttendantSelect = document.getElementById('expenseAttendant');
+            const attendanceStudentSelect = document.getElementById('attendanceStudent');
+
+            // Clear existing options
+            salesAttendantSelect.innerHTML = '<option value="">Pilih Siswa</option>';
+            expenseAttendantSelect.innerHTML = '<option value="">Pilih Siswa</option>';
+            attendanceStudentSelect.innerHTML = '<option value="">Pilih Siswa</option>';
+
+            students.forEach(student => {
+                const option1 = document.createElement('option');
+                option1.value = student.name;
+                option1.textContent = `${student.name} (${student.major})`;
+                salesAttendantSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = student.name;
+                option2.textContent = `${student.name} (${student.major})`;
+                expenseAttendantSelect.appendChild(option2);
+
+                const option3 = document.createElement('option');
+                option3.value = student.name;
+                option3.textContent = `${student.name} (${student.major})`;
+                attendanceStudentSelect.appendChild(option3);
+            });
+        }
+
+        // --- Attendance Functions ---
+        function renderAttendance() {
+            const tableBody = document.getElementById('attendanceTable').querySelector('tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            // Sort attendance by date in descending order
+            const sortedAttendance = [...attendance].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (sortedAttendance.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500">Belum ada data kehadiran.</td></tr>';
+                return;
+            }
+
+            sortedAttendance.forEach((record, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = record.date;
+                row.insertCell().textContent = record.shift;
+                row.insertCell().textContent = record.studentName;
+                const student = students.find(s => s.name === record.studentName);
+                row.insertCell().textContent = student ? student.major : '-'; // Display major if student found
+                row.insertCell().textContent = record.status;
+
+                // Action buttons for delete
+                const actionCell = row.insertCell();
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Hapus';
+                deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
+                deleteBtn.onclick = () => deleteAttendance(index);
+                actionCell.appendChild(deleteBtn);
+            });
+            populateStudentDropdowns(); // Refresh student dropdown in attendance form
+            document.getElementById('attendanceDate').valueAsDate = new Date(); // Set default date
+        }
+
+        document.getElementById('attendanceForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const date = document.getElementById('attendanceDate').value;
+            const shift = document.getElementById('attendanceShift').value.trim();
+            const studentName = document.getElementById('attendanceStudent').value;
+            const status = document.getElementById('attendanceStatus').value;
+
+            // Check for duplicate attendance for the same student on the same date and shift
+            const isDuplicate = attendance.some(record =>
+                record.date === date &&
+                record.shift === shift &&
+                record.studentName === studentName
+            );
+
+            if (isDuplicate) {
+                showMessage('Siswa ini sudah dicatat kehadirannya untuk tanggal dan shift yang sama.', 'error');
+                return;
+            }
+
+            const newRecord = {
+                id: Date.now(), // Unique ID
+                date: date,
+                shift: shift,
+                studentName: studentName,
+                status: status
+            };
+
+            attendance.push(newRecord);
+            saveData();
+            renderAttendance();
+            showMessage('Kehadiran siswa berhasil dicatat!');
+            this.reset();
+            document.getElementById('attendanceDate').valueAsDate = new Date(); // Reset date
+        });
+
+        function deleteAttendance(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus catatan kehadiran ini?')) {
+                attendance.splice(index, 1);
+                saveData();
+                renderAttendance();
+                showMessage('Catatan kehadiran berhasil dihapus.');
+            }
+        }
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default date for date inputs
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('saleDate').value = today;
+            document.getElementById('expenseDate').value = today;
+            document.getElementById('attendanceDate').value = today;
+
+            // Render all data and show dashboard initially
+            renderProducts();
+            renderSales();
+            renderExpenses();
+            renderStudents();
+            renderAttendance();
+            updateDashboard();
+            showTab('dashboard'); // Show dashboard on initial load
+        });
+    </script>
+</body>
+</html>
