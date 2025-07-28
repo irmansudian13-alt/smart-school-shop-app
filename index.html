@@ -625,7 +625,8 @@
         }
 
         // --- Tab Management ---
-        function showTab(tabId) {
+        // Make showTab globally accessible
+        window.showTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.add('hidden');
             });
@@ -1137,7 +1138,7 @@
             });
             populateStudentDropdowns();
             document.getElementById('attendanceDate').valueAsDate = new Date();
-        }
+        });
 
         document.getElementById('attendanceForm').addEventListener('submit', async function(event) {
             event.preventDefault();
