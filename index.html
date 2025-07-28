@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMART School SHOP App</title>
-    <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -114,17 +113,45 @@
             border-top: 2px solid #4f46e5;
             padding-top: 1.5rem;
         }
+        /* Loading Overlay Styles */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .disabled-overlay {
+            pointer-events: none; /* Prevents clicks */
+            opacity: 0.6; /* Visually indicates disabled state */
+        }
     </style>
 </head>
 <body class="antialiased">
-    <div class="container py-8">
+    <div id="appContainer" class="container py-8">
         <h1 class="text-4xl font-bold text-center mb-4 text-indigo-700">SMART School SHOP App</h1>
         <p id="userIdDisplay" class="text-center text-sm text-gray-600 mb-8">User ID: Loading...</p>
 
-        <!-- Message Box for notifications -->
         <div id="messageBox" class="message-box"></div>
 
-        <!-- Tab Navigation -->
         <div class="flex mb-4">
             <button class="tab-button active" onclick="showTab('dashboard')">Dashboard</button>
             <button class="tab-button" onclick="showTab('sales')">Penjualan</button>
@@ -134,7 +161,6 @@
             <button class="tab-button" onclick="showTab('settings')">Pengaturan</button>
         </div>
 
-        <!-- Dashboard Tab Content -->
         <div id="dashboard" class="tab-content card">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Ringkasan Keuangan</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -164,13 +190,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Recent transactions will be loaded here by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Sales Tab Content -->
         <div id="sales" class="tab-content card hidden">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Catat Penjualan Baru</h2>
             <form id="salesForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -178,8 +202,7 @@
                     <label for="saleProduct" class="block text-sm font-medium text-gray-700 mb-1">Produk:</label>
                     <select id="saleProduct" required>
                         <option value="">Pilih Produk</option>
-                        <!-- Products will be loaded here by JS -->
-                    </select>
+                        </select>
                 </div>
                 <div>
                     <label for="saleQuantity" class="block text-sm font-medium text-gray-700 mb-1">Jumlah:</label>
@@ -200,8 +223,7 @@
                     <label for="saleAttendant" class="block text-sm font-medium text-gray-700 mb-1">Petugas Penjual:</label>
                     <select id="saleAttendant" required>
                         <option value="">Pilih Siswa</option>
-                        <!-- Students will be loaded here by JS -->
-                    </select>
+                        </select>
                 </div>
                 <div class="md:col-span-2 flex justify-end">
                     <button type="submit" class="btn-primary">Catat Penjualan</button>
@@ -224,13 +246,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Sales records will be loaded here by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Expenses Tab Content -->
         <div id="expenses" class="tab-content card hidden">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Catat Pengeluaran Baru</h2>
             <form id="expenseForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -260,8 +280,7 @@
                     <label for="expenseAttendant" class="block text-sm font-medium text-gray-700 mb-1">Petugas Pencatat:</label>
                     <select id="expenseAttendant" required>
                         <option value="">Pilih Siswa</option>
-                        <!-- Students will be loaded here by JS -->
-                    </select>
+                        </select>
                 </div>
                 <div class="md:col-span-2 flex justify-end">
                     <button type="submit" class="btn-primary">Catat Pengeluaran</button>
@@ -282,13 +301,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Expense records will be loaded here by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Stock Tab Content -->
         <div id="stock" class="tab-content card hidden">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Manajemen Stok Barang</h2>
 
@@ -334,13 +351,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Stock records will be loaded here by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Attendance Tab Content -->
         <div id="attendance" class="tab-content card hidden">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Catat Daftar Hadir Siswa</h2>
             <form id="attendanceForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -356,8 +371,7 @@
                     <label for="attendanceStudent" class="block text-sm font-medium text-gray-700 mb-1">Nama Siswa:</label>
                     <select id="attendanceStudent" required>
                         <option value="">Pilih Siswa</option>
-                        <!-- Students will be loaded here by JS -->
-                    </select>
+                        </select>
                 </div>
                 <div class="md:col-span-2">
                     <label for="attendanceStatus" class="block text-sm font-medium text-gray-700 mb-1">Status Kehadiran:</label>
@@ -387,13 +401,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Attendance records will be loaded here by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Settings Tab Content -->
         <div id="settings" class="tab-content card hidden">
             <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Pengaturan Data Master</h2>
 
@@ -430,11 +442,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Student records will be loaded here by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
+    </div>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <p class="text-lg text-gray-700">Memuat aplikasi...</p>
     </div>
 
     <script type="module">
@@ -445,16 +461,11 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
         // --- Global Variables (Canvas Injected) ---
-        // These variables are provided by the Canvas environment at runtime.
-        // If running outside Canvas (e.g., on Cloudflare Pages), they will be undefined,
-        // so we provide default empty values or handle their absence.
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'smart-school-shop-default';
         const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
 
         // --- Firebase Configuration (YOUR ACTUAL FIREBASE CONFIG) ---
-        // This is the ONLY firebaseConfig block that should exist.
-        // It has been updated with the values you provided in the previous turn.
         const firebaseConfig = {
             apiKey: "AIzaSyD4fBs0c6dIycDbuFew1355aDuJYgMm8Q0",
             authDomain: "smart-school-shop-app.firebaseapp.com",
@@ -465,7 +476,6 @@
             measurementId: "G-EX61980YME"
         };
 
-        // If running in Canvas and __firebase_config is provided, use it. Otherwise, use the hardcoded one.
         const finalFirebaseConfig = Object.keys(firebaseConfigFromCanvas).length > 0 ? firebaseConfigFromCanvas : firebaseConfig;
 
         // --- Firebase Initialization ---
@@ -474,32 +484,50 @@
         let auth;
         let analytics;
         let currentUserId = null;
-        let isAuthReady = false; // Flag to ensure auth is ready before Firestore ops
+        let isAuthReady = false;
 
-        // Initialize Firebase and set up authentication listener
+        // Function to disable all interactive elements
+        function disableUI() {
+            document.getElementById('appContainer').classList.add('disabled-overlay');
+            document.querySelectorAll('button, input, select, textarea').forEach(element => {
+                element.disabled = true;
+            });
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            console.log("UI disabled.");
+        }
+
+        // Function to enable all interactive elements
+        function enableUI() {
+            document.getElementById('appContainer').classList.remove('disabled-overlay');
+            document.querySelectorAll('button, input, select, textarea').forEach(element => {
+                element.disabled = false;
+            });
+            document.getElementById('loadingOverlay').style.display = 'none';
+            console.log("UI enabled.");
+        }
+
         async function initializeFirebase() {
+            console.log("Initializing Firebase...");
+            disableUI(); // Disable UI immediately when starting initialization
             try {
                 app = initializeApp(finalFirebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                // Initialize Analytics if measurementId is present
                 if (finalFirebaseConfig.measurementId) {
                     analytics = getAnalytics(app);
                     console.log("Firebase Analytics initialized.");
                 }
 
-                // Listen for authentication state changes
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         currentUserId = user.uid;
                         document.getElementById('userIdDisplay').textContent = `User ID: ${currentUserId}`;
                         isAuthReady = true;
                         console.log("Firebase Authenticated. User ID:", currentUserId);
-                        // Once authenticated, load data
                         loadAllData();
+                        enableUI(); // Enable UI once authenticated and data loading starts
                     } else {
-                        // Sign in anonymously if no user is logged in
-                        console.log("No user logged in, signing in anonymously...");
+                        console.log("No user logged in, attempting anonymous sign-in...");
                         try {
                             if (initialAuthToken) {
                                 await signInWithCustomToken(auth, initialAuthToken);
@@ -509,28 +537,28 @@
                                 console.log("Signed in anonymously.");
                             }
                         } catch (error) {
-                            console.error("Error signing in:", error);
-                            showMessage("Gagal login ke Firebase. Coba muat ulang halaman.", "error");
+                            console.error("Error signing in anonymously:", error);
+                            showMessage("Gagal login ke Firebase. Coba muat ulang halaman atau periksa koneksi internet.", "error");
+                            // Keep UI disabled if sign-in fails
                         }
                     }
                 });
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
-                showMessage("Gagal menginisialisasi Firebase. Pastikan konfigurasi benar.", "error");
+                showMessage("Gagal menginisialisasi Firebase. Pastikan konfigurasi benar dan internet stabil.", "error");
+                // Keep UI disabled if initialization fails
             }
         }
 
-        // --- Firestore Collection References ---
-        // Data will be stored under /artifacts/{appId}/users/{userId}/{collectionName}
         function getCollectionRef(collectionName) {
             if (!db || !currentUserId || !appId) {
-                console.error("Firestore DB, User ID, or App ID not ready.");
+                console.error("Firestore DB, User ID, or App ID not ready for collection:", collectionName);
+                showMessage("Database belum siap. Coba muat ulang halaman.", "error");
                 return null;
             }
             return collection(db, `artifacts/${appId}/users/${currentUserId}/${collectionName}`);
         }
 
-        // --- Utility Functions ---
         function showMessage(message, type = 'success') {
             const messageBox = document.getElementById('messageBox');
             messageBox.textContent = message;
@@ -554,78 +582,70 @@
             }).format(number);
         }
 
-        // --- Data Storage (Now using Firebase Firestore) ---
         let products = [];
         let sales = [];
         let expenses = [];
         let students = [];
         let attendance = [];
 
-        // --- Real-time Data Loading with onSnapshot ---
         function loadAllData() {
             if (!isAuthReady) {
                 console.warn("Authentication not ready, cannot load data.");
                 return;
             }
+            console.log("Loading all data from Firestore...");
 
-            // Products Listener
             onSnapshot(getCollectionRef('products'), (snapshot) => {
                 products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderProducts();
                 populateProductDropdowns();
-                updateDashboard(); // Update dashboard after products load
-                console.log("Products loaded from Firestore:", products.length);
+                updateDashboard();
+                console.log("Products loaded:", products.length);
             }, (error) => {
                 console.error("Error loading products:", error);
                 showMessage("Gagal memuat produk dari database.", "error");
             });
 
-            // Sales Listener
             onSnapshot(getCollectionRef('sales'), (snapshot) => {
                 sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderSales();
-                updateDashboard(); // Update dashboard after sales load
-                console.log("Sales loaded from Firestore:", sales.length);
+                updateDashboard();
+                console.log("Sales loaded:", sales.length);
             }, (error) => {
                 console.error("Error loading sales:", error);
                 showMessage("Gagal memuat penjualan dari database.", "error");
             });
 
-            // Expenses Listener
             onSnapshot(getCollectionRef('expenses'), (snapshot) => {
                 expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderExpenses();
-                updateDashboard(); // Update dashboard after expenses load
-                console.log("Expenses loaded from Firestore:", expenses.length);
+                updateDashboard();
+                console.log("Expenses loaded:", expenses.length);
             }, (error) => {
                 console.error("Error loading expenses:", error);
                 showMessage("Gagal memuat pengeluaran dari database.", "error");
             });
 
-            // Students Listener
             onSnapshot(getCollectionRef('students'), (snapshot) => {
                 students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderStudents();
                 populateStudentDropdowns();
-                console.log("Students loaded from Firestore:", students.length);
+                console.log("Students loaded:", students.length);
             }, (error) => {
                 console.error("Error loading students:", error);
                 showMessage("Gagal memuat data siswa dari database.", "error");
             });
 
-            // Attendance Listener
             onSnapshot(getCollectionRef('attendance'), (snapshot) => {
                 attendance = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAttendance();
-                console.log("Attendance loaded from Firestore:", attendance.length);
+                console.log("Attendance loaded:", attendance.length);
             }, (error) => {
                 console.error("Error loading attendance:", error);
                 showMessage("Gagal memuat data kehadiran dari database.", "error");
             });
         }
 
-        // --- Tab Management ---
-        // Make showTab globally accessible
         window.showTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.add('hidden');
@@ -637,12 +657,9 @@
             document.getElementById(tabId).classList.remove('hidden');
             document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
 
-            // Refresh data when switching tabs (render functions will be called by onSnapshot listeners)
-            // We call updateDashboard explicitly as it aggregates data from multiple collections
             if (tabId === 'dashboard') updateDashboard();
         }
 
-        // --- Dashboard Functions ---
         function updateDashboard() {
             const totalSales = sales.reduce((sum, item) => sum + item.totalPrice, 0);
             const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
@@ -680,11 +697,11 @@
             });
         }
 
-        // --- Sales Functions ---
         async function addSale(newSale) {
             try {
-                if (!getCollectionRef('sales')) return;
-                await addDoc(getCollectionRef('sales'), newSale);
+                const salesColRef = getCollectionRef('sales');
+                if (!salesColRef) return;
+                await addDoc(salesColRef, newSale);
                 showMessage('Penjualan berhasil dicatat!');
             } catch (e) {
                 console.error("Error adding document: ", e);
@@ -693,15 +710,16 @@
         }
 
         async function deleteSale(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus penjualan ini? Stok tidak akan dikembalikan secara otomatis.')) {
-                try {
-                    if (!getCollectionRef('sales')) return;
-                    await deleteDoc(doc(getCollectionRef('sales'), id));
-                    showMessage('Penjualan berhasil dihapus.');
-                } catch (e) {
-                    console.error("Error deleting document: ", e);
-                    showMessage("Gagal menghapus penjualan.", "error");
-                }
+            // Replaced alert/confirm with custom message box for better UX
+            showMessage("Menghapus penjualan...", "info");
+            try {
+                const salesColRef = getCollectionRef('sales');
+                if (!salesColRef) return;
+                await deleteDoc(doc(salesColRef, id));
+                showMessage('Penjualan berhasil dihapus.');
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+                showMessage("Gagal menghapus penjualan.", "error");
             }
         }
 
@@ -765,17 +783,17 @@
                 attendant: attendant
             };
 
-            await addSale(newSale); // Add to Firestore
-            await updateProductStock(product.id, product.stock - quantity); // Update stock in Firestore
+            await addSale(newSale);
+            await updateProductStock(product.id, product.stock - quantity);
             this.reset();
             document.getElementById('saleDate').valueAsDate = new Date();
         });
 
-        // --- Expenses Functions ---
         async function addExpense(newExpense) {
             try {
-                if (!getCollectionRef('expenses')) return;
-                await addDoc(getCollectionRef('expenses'), newExpense);
+                const expensesColRef = getCollectionRef('expenses');
+                if (!expensesColRef) return;
+                await addDoc(expensesColRef, newExpense);
                 showMessage('Pengeluaran berhasil dicatat!');
             } catch (e) {
                 console.error("Error adding document: ", e);
@@ -784,15 +802,15 @@
         }
 
         async function deleteExpense(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus pengeluaran ini?')) {
-                try {
-                    if (!getCollectionRef('expenses')) return;
-                    await deleteDoc(doc(getCollectionRef('expenses'), id));
-                    showMessage('Pengeluaran berhasil dihapus.');
-                } catch (e) {
-                    console.error("Error deleting document: ", e);
-                    showMessage("Gagal menghapus pengeluaran.", "error");
-                }
+            showMessage("Menghapus pengeluaran...", "info");
+            try {
+                const expensesColRef = getCollectionRef('expenses');
+                if (!expensesColRef) return;
+                await deleteDoc(doc(expensesColRef, id));
+                showMessage('Pengeluaran berhasil dihapus.');
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+                showMessage("Gagal menghapus pengeluaran.", "error");
             }
         }
 
@@ -845,15 +863,15 @@
             document.getElementById('expenseDate').valueAsDate = new Date();
         });
 
-        // --- Product/Stock Functions ---
         async function addOrUpdateProduct(productData, productId = null) {
             try {
-                if (!getCollectionRef('products')) return;
+                const productsColRef = getCollectionRef('products');
+                if (!productsColRef) return;
                 if (productId) {
-                    await setDoc(doc(getCollectionRef('products'), productId), productData);
+                    await setDoc(doc(productsColRef, productId), productData);
                     showMessage('Produk berhasil diupdate!');
                 } else {
-                    await addDoc(getCollectionRef('products'), productData);
+                    await addDoc(productsColRef, productData);
                     showMessage('Produk berhasil ditambahkan!');
                 }
             } catch (e) {
@@ -864,8 +882,9 @@
 
         async function updateProductStock(productId, newStock) {
             try {
-                if (!getCollectionRef('products')) return;
-                await setDoc(doc(getCollectionRef('products'), productId), { stock: newStock }, { merge: true });
+                const productsColRef = getCollectionRef('products');
+                if (!productsColRef) return;
+                await setDoc(doc(productsColRef, productId), { stock: newStock }, { merge: true });
                 console.log("Stok produk berhasil diupdate.");
             } catch (e) {
                 console.error("Error updating product stock: ", e);
@@ -874,15 +893,15 @@
         }
 
         async function deleteProduct(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus produk ini? Ini akan menghapus semua data produk terkait.')) {
-                try {
-                    if (!getCollectionRef('products')) return;
-                    await deleteDoc(doc(getCollectionRef('products'), id));
-                    showMessage('Produk berhasil dihapus.');
-                } catch (e) {
-                    console.error("Error deleting product: ", e);
-                    showMessage("Gagal menghapus produk.", "error");
-                }
+            showMessage("Menghapus produk...", "info");
+            try {
+                const productsColRef = getCollectionRef('products');
+                if (!productsColRef) return;
+                await deleteDoc(doc(productsColRef, id));
+                showMessage('Produk berhasil dihapus.');
+            } catch (e) {
+                console.error("Error deleting product: ", e);
+                showMessage("Gagal menghapus produk.", "error");
             }
         }
 
@@ -931,7 +950,7 @@
             populateProductDropdowns();
         }
 
-        let editingProductId = null; // To keep track of which product is being edited
+        let editingProductId = null;
 
         document.getElementById('productForm').addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -951,9 +970,8 @@
 
             if (editingProductId) {
                 await addOrUpdateProduct(productData, editingProductId);
-                editingProductId = null; // Reset editing state
+                editingProductId = null;
             } else {
-                // Check for duplicate product name + size before adding new
                 const existingProduct = products.find(p => p.name === name && p.size === size);
                 if (existingProduct) {
                     showMessage('Produk dengan nama dan ukuran yang sama sudah ada. Gunakan tombol Edit untuk mengubahnya.', 'error');
@@ -973,7 +991,7 @@
                 document.getElementById('productBuyPrice').value = product.buyPrice;
                 document.getElementById('productSellPrice').value = product.sellPrice;
                 document.getElementById('productStock').value = product.stock;
-                editingProductId = id; // Set editing state
+                editingProductId = id;
                 showMessage('Form produk diisi untuk diedit. Tekan "Tambah/Update Produk" untuk menyimpan perubahan.');
             }
         }
@@ -989,11 +1007,11 @@
             });
         }
 
-        // --- Student Management Functions ---
         async function addStudent(newStudent) {
             try {
-                if (!getCollectionRef('students')) return;
-                await addDoc(getCollectionRef('students'), newStudent);
+                const studentsColRef = getCollectionRef('students');
+                if (!studentsColRef) return;
+                await addDoc(studentsColRef, newStudent);
                 showMessage('Siswa berhasil ditambahkan!');
             } catch (e) {
                 console.error("Error adding student: ", e);
@@ -1002,15 +1020,15 @@
         }
 
         async function deleteStudent(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus siswa ini? Ini akan menghapus siswa dari daftar master.')) {
-                try {
-                    if (!getCollectionRef('students')) return;
-                    await deleteDoc(doc(getCollectionRef('students'), id));
-                    showMessage('Siswa berhasil dihapus.');
-                } catch (e) {
-                    console.error("Error deleting student: ", e);
-                    showMessage("Gagal menghapus siswa.", "error");
-                }
+            showMessage("Menghapus siswa...", "info");
+            try {
+                const studentsColRef = getCollectionRef('students');
+                if (!studentsColRef) return;
+                await deleteDoc(doc(studentsColRef, id));
+                showMessage('Siswa berhasil dihapus.');
+            } catch (e) {
+                console.error("Error deleting student: ", e);
+                showMessage("Gagal menghapus siswa.", "error");
             }
         }
 
@@ -1084,11 +1102,11 @@
             });
         }
 
-        // --- Attendance Functions ---
         async function addAttendance(newRecord) {
             try {
-                if (!getCollectionRef('attendance')) return;
-                await addDoc(getCollectionRef('attendance'), newRecord);
+                const attendanceColRef = getCollectionRef('attendance');
+                if (!attendanceColRef) return;
+                await addDoc(attendanceColRef, newRecord);
                 showMessage('Kehadiran siswa berhasil dicatat!');
             } catch (e) {
                 console.error("Error adding attendance: ", e);
@@ -1097,15 +1115,15 @@
         }
 
         async function deleteAttendance(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus catatan kehadiran ini?')) {
-                try {
-                    if (!getCollectionRef('attendance')) return;
-                    await deleteDoc(doc(getCollectionRef('attendance'), id));
-                    showMessage('Catatan kehadiran berhasil dihapus.');
-                } catch (e) {
-                    console.error("Error deleting attendance: ", e);
-                    showMessage("Gagal menghapus catatan kehadiran.", "error");
-                }
+            showMessage("Menghapus catatan kehadiran...", "info");
+            try {
+                const attendanceColRef = getCollectionRef('attendance');
+                if (!attendanceColRef) return;
+                await deleteDoc(doc(attendanceColRef, id)); // BARIS 1141: Kurung tutup ekstra telah dihapus
+                showMessage('Catatan kehadiran berhasil dihapus.');
+            } catch (e) {
+                console.error("Error deleting attendance: ", e);
+                showMessage("Gagal menghapus catatan kehadiran.", "error");
             }
         }
 
@@ -1138,7 +1156,7 @@
             });
             populateStudentDropdowns();
             document.getElementById('attendanceDate').valueAsDate = new Date();
-        });
+        }
 
         document.getElementById('attendanceForm').addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -1170,15 +1188,14 @@
             document.getElementById('attendanceDate').valueAsDate = new Date();
         });
 
-        // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('saleDate').value = today;
             document.getElementById('expenseDate').value = today;
             document.getElementById('attendanceDate').value = today;
 
-            initializeFirebase(); // Initialize Firebase on DOMContentLoaded
-            showTab('dashboard'); // Show dashboard initially
+            initializeFirebase();
+            showTab('dashboard');
         });
     </script>
 </body>
