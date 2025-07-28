@@ -118,7 +118,8 @@
 </head>
 <body class="antialiased">
     <div class="container py-8">
-        <h1 class="text-4xl font-bold text-center mb-8 text-indigo-700">SMART School SHOP App</h1>
+        <h1 class="text-4xl font-bold text-center mb-4 text-indigo-700">SMART School SHOP App</h1>
+        <p id="userIdDisplay" class="text-center text-sm text-gray-600 mb-8">User ID: Loading...</p>
 
         <!-- Message Box for notifications -->
         <div id="messageBox" class="message-box"></div>
@@ -436,31 +437,97 @@
         </div>
     </div>
 
-    <script>
-        // --- Data Storage (using localStorage for simplicity) ---
-        // For a more robust, multi-user application, consider using a cloud database like Firebase Firestore.
-        let products = JSON.parse(localStorage.getItem('smartSchoolShop_products')) || [];
-        let sales = JSON.parse(localStorage.getItem('smartSchoolShop_sales')) || [];
-        let expenses = JSON.parse(localStorage.getItem('smartSchoolShop_expenses')) || [];
-        let students = JSON.parse(localStorage.getItem('smartSchoolShop_students')) || [];
-        let attendance = JSON.parse(localStorage.getItem('smartSchoolShop_attendance')) || [];
+    <script type="module">
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, setDoc, doc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Utility Functions ---
+        // --- Global Variables (Canvas Injected) ---
+        // These variables are provided by the Canvas environment at runtime.
+        // If running outside Canvas (e.g., on Cloudflare Pages), they will be undefined,
+        // so we provide default empty values or handle their absence.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'smart-school-shop-default';
+        const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
 
-        // Function to save all data to localStorage
-        function saveData() {
-            localStorage.setItem('smartSchoolShop_products', JSON.stringify(products));
-            localStorage.setItem('smartSchoolShop_sales', JSON.stringify(sales));
-            localStorage.setItem('smartSchoolShop_expenses', JSON.stringify(expenses));
-            localStorage.setItem('smartSchoolShop_students', JSON.stringify(students));
-            localStorage.setItem('smartSchoolShop_attendance', JSON.stringify(attendance));
+        // --- Firebase Configuration (REPLACE WITH YOUR ACTUAL FIREBASE CONFIG) ---
+        // You MUST replace this with the firebaseConfig object you copied from your Firebase project.
+        // Example:
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY", // Ganti dengan API Key Anda
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // Ganti dengan authDomain Anda
+            projectId: "YOUR_PROJECT_ID", // Ganti dengan Project ID Anda
+            storageBucket: "YOUR_PROJECT_ID.appspot.com", // Ganti dengan storageBucket Anda
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Ganti dengan messagingSenderId Anda
+            appId: "YOUR_APP_ID" // Ganti dengan App ID Anda
+            // measurementId: "G-XXXXXXXXXX" // Optional, jika ada
+        };
+
+        // If running in Canvas and __firebase_config is provided, use it. Otherwise, use the hardcoded one.
+        const finalFirebaseConfig = Object.keys(firebaseConfigFromCanvas).length > 0 ? firebaseConfigFromCanvas : firebaseConfig;
+
+        // --- Firebase Initialization ---
+        let app;
+        let db;
+        let auth;
+        let currentUserId = null;
+        let isAuthReady = false; // Flag to ensure auth is ready before Firestore ops
+
+        // Initialize Firebase and set up authentication listener
+        async function initializeFirebase() {
+            try {
+                app = initializeApp(finalFirebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Listen for authentication state changes
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        document.getElementById('userIdDisplay').textContent = `User ID: ${currentUserId}`;
+                        isAuthReady = true;
+                        console.log("Firebase Authenticated. User ID:", currentUserId);
+                        // Once authenticated, load data
+                        loadAllData();
+                    } else {
+                        // Sign in anonymously if no user is logged in
+                        console.log("No user logged in, signing in anonymously...");
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                                console.log("Signed in with custom token.");
+                            } else {
+                                await signInAnonymously(auth);
+                                console.log("Signed in anonymously.");
+                            }
+                        } catch (error) {
+                            console.error("Error signing in:", error);
+                            showMessage("Gagal login ke Firebase. Coba muat ulang halaman.", "error");
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showMessage("Gagal menginisialisasi Firebase. Pastikan konfigurasi benar.", "error");
+            }
         }
 
-        // Function to display messages to the user
+        // --- Firestore Collection References ---
+        // Data will be stored under /artifacts/{appId}/users/{userId}/{collectionName}
+        function getCollectionRef(collectionName) {
+            if (!db || !currentUserId || !appId) {
+                console.error("Firestore DB, User ID, or App ID not ready.");
+                return null;
+            }
+            return collection(db, `artifacts/${appId}/users/${currentUserId}/${collectionName}`);
+        }
+
+        // --- Utility Functions ---
         function showMessage(message, type = 'success') {
             const messageBox = document.getElementById('messageBox');
             messageBox.textContent = message;
-            messageBox.className = `message-box ${type}`; // Add type class for styling (success/error)
+            messageBox.className = `message-box ${type}`;
             messageBox.style.display = 'block';
             messageBox.style.opacity = '1';
 
@@ -468,11 +535,10 @@
                 messageBox.style.opacity = '0';
                 setTimeout(() => {
                     messageBox.style.display = 'none';
-                }, 300); // Hide after fade out
-            }, 3000); // Display for 3 seconds
+                }, 300);
+            }, 3000);
         }
 
-        // Function to format number to IDR currency
         function formatRupiah(number) {
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency',
@@ -481,29 +547,91 @@
             }).format(number);
         }
 
+        // --- Data Storage (Now using Firebase Firestore) ---
+        let products = [];
+        let sales = [];
+        let expenses = [];
+        let students = [];
+        let attendance = [];
+
+        // --- Real-time Data Loading with onSnapshot ---
+        function loadAllData() {
+            if (!isAuthReady) {
+                console.warn("Authentication not ready, cannot load data.");
+                return;
+            }
+
+            // Products Listener
+            onSnapshot(getCollectionRef('products'), (snapshot) => {
+                products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderProducts();
+                populateProductDropdowns();
+                updateDashboard(); // Update dashboard after products load
+                console.log("Products loaded from Firestore:", products.length);
+            }, (error) => {
+                console.error("Error loading products:", error);
+                showMessage("Gagal memuat produk dari database.", "error");
+            });
+
+            // Sales Listener
+            onSnapshot(getCollectionRef('sales'), (snapshot) => {
+                sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderSales();
+                updateDashboard(); // Update dashboard after sales load
+                console.log("Sales loaded from Firestore:", sales.length);
+            }, (error) => {
+                console.error("Error loading sales:", error);
+                showMessage("Gagal memuat penjualan dari database.", "error");
+            });
+
+            // Expenses Listener
+            onSnapshot(getCollectionRef('expenses'), (snapshot) => {
+                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderExpenses();
+                updateDashboard(); // Update dashboard after expenses load
+                console.log("Expenses loaded from Firestore:", expenses.length);
+            }, (error) => {
+                console.error("Error loading expenses:", error);
+                showMessage("Gagal memuat pengeluaran dari database.", "error");
+            });
+
+            // Students Listener
+            onSnapshot(getCollectionRef('students'), (snapshot) => {
+                students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderStudents();
+                populateStudentDropdowns();
+                console.log("Students loaded from Firestore:", students.length);
+            }, (error) => {
+                console.error("Error loading students:", error);
+                showMessage("Gagal memuat data siswa dari database.", "error");
+            });
+
+            // Attendance Listener
+            onSnapshot(getCollectionRef('attendance'), (snapshot) => {
+                attendance = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAttendance();
+                console.log("Attendance loaded from Firestore:", attendance.length);
+            }, (error) => {
+                console.error("Error loading attendance:", error);
+                showMessage("Gagal memuat data kehadiran dari database.", "error");
+            });
+        }
+
         // --- Tab Management ---
         function showTab(tabId) {
-            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.add('hidden');
             });
-            // Deactivate all tab buttons
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.remove('active');
             });
 
-            // Show the selected tab content
             document.getElementById(tabId).classList.remove('hidden');
-            // Activate the corresponding tab button
             document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
 
-            // Refresh data when switching tabs
+            // Refresh data when switching tabs (render functions will be called by onSnapshot listeners)
+            // We call updateDashboard explicitly as it aggregates data from multiple collections
             if (tabId === 'dashboard') updateDashboard();
-            if (tabId === 'sales') renderSales();
-            if (tabId === 'expenses') renderExpenses();
-            if (tabId === 'stock') renderProducts();
-            if (tabId === 'attendance') renderAttendance();
-            if (tabId === 'settings') renderStudents();
         }
 
         // --- Dashboard Functions ---
@@ -521,12 +649,11 @@
 
         function renderRecentTransactions() {
             const tableBody = document.getElementById('recentTransactionsTable').querySelector('tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            tableBody.innerHTML = '';
 
-            // Combine sales and expenses, sort by date, and take the latest 5
             const allTransactions = [
                 ...sales.map(s => ({ date: s.date, type: 'Penjualan', description: `${s.productName} (${s.quantity})`, amount: s.totalPrice })),
-                ...expenses.map(e => ({ date: e.date, type: 'Pengeluaran', description: e.description, amount: -e.amount })) // Negative for expenses
+                ...expenses.map(e => ({ date: e.date, type: 'Pengeluaran', description: e.description, amount: -e.amount }))
             ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
             if (allTransactions.length === 0) {
@@ -546,16 +673,40 @@
         }
 
         // --- Sales Functions ---
+        async function addSale(newSale) {
+            try {
+                if (!getCollectionRef('sales')) return;
+                await addDoc(getCollectionRef('sales'), newSale);
+                showMessage('Penjualan berhasil dicatat!');
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage("Gagal mencatat penjualan.", "error");
+            }
+        }
+
+        async function deleteSale(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus penjualan ini? Stok tidak akan dikembalikan secara otomatis.')) {
+                try {
+                    if (!getCollectionRef('sales')) return;
+                    await deleteDoc(doc(getCollectionRef('sales'), id));
+                    showMessage('Penjualan berhasil dihapus.');
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    showMessage("Gagal menghapus penjualan.", "error");
+                }
+            }
+        }
+
         function renderSales() {
             const tableBody = document.getElementById('salesTable').querySelector('tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            tableBody.innerHTML = '';
 
             if (sales.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500">Belum ada data penjualan.</td></tr>';
                 return;
             }
 
-            sales.forEach((sale, index) => {
+            sales.forEach((sale) => {
                 const row = tableBody.insertRow();
                 row.insertCell().textContent = sale.date;
                 row.insertCell().textContent = sale.productName;
@@ -565,20 +716,19 @@
                 row.insertCell().textContent = sale.method;
                 row.insertCell().textContent = sale.attendant;
 
-                // Action buttons for delete
                 const actionCell = row.insertCell();
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = 'Hapus';
                 deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
-                deleteBtn.onclick = () => deleteSale(index);
+                deleteBtn.onclick = () => deleteSale(sale.id);
                 actionCell.appendChild(deleteBtn);
             });
-            populateProductDropdowns(); // Refresh product dropdown in sales form
-            populateStudentDropdowns(); // Refresh student dropdown in sales form
-            document.getElementById('saleDate').valueAsDate = new Date(); // Set default date
+            populateProductDropdowns();
+            populateStudentDropdowns();
+            document.getElementById('saleDate').valueAsDate = new Date();
         }
 
-        document.getElementById('salesForm').addEventListener('submit', function(event) {
+        document.getElementById('salesForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const productName = document.getElementById('saleProduct').value;
             const quantity = parseInt(document.getElementById('saleQuantity').value);
@@ -598,7 +748,6 @@
             }
 
             const newSale = {
-                id: Date.now(), // Unique ID
                 date: date,
                 productName: productName,
                 quantity: quantity,
@@ -608,41 +757,47 @@
                 attendant: attendant
             };
 
-            sales.push(newSale);
-            product.stock -= quantity; // Decrease stock
-            saveData();
-            renderSales();
-            updateDashboard();
-            renderProducts(); // Update stock table
-            showMessage('Penjualan berhasil dicatat!');
+            await addSale(newSale); // Add to Firestore
+            await updateProductStock(product.id, product.stock - quantity); // Update stock in Firestore
             this.reset();
-            document.getElementById('saleDate').valueAsDate = new Date(); // Reset date
+            document.getElementById('saleDate').valueAsDate = new Date();
         });
 
-        function deleteSale(index) {
-            if (confirm('Apakah Anda yakin ingin menghapus penjualan ini? Stok tidak akan dikembalikan secara otomatis.')) {
-                const deletedSale = sales.splice(index, 1)[0];
-                // Optionally, if you want to return stock, you need to find the product and add back the quantity.
-                // This makes deletion more complex, so for simplicity, we'll just delete the record.
-                // For a real app, you'd handle this with a proper reversal or adjustment.
-                saveData();
-                renderSales();
-                updateDashboard();
-                showMessage('Penjualan berhasil dihapus.');
+        // --- Expenses Functions ---
+        async function addExpense(newExpense) {
+            try {
+                if (!getCollectionRef('expenses')) return;
+                await addDoc(getCollectionRef('expenses'), newExpense);
+                showMessage('Pengeluaran berhasil dicatat!');
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage("Gagal mencatat pengeluaran.", "error");
             }
         }
 
-        // --- Expenses Functions ---
+        async function deleteExpense(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus pengeluaran ini?')) {
+                try {
+                    if (!getCollectionRef('expenses')) return;
+                    await deleteDoc(doc(getCollectionRef('expenses'), id));
+                    showMessage('Pengeluaran berhasil dihapus.');
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    showMessage("Gagal menghapus pengeluaran.", "error");
+                }
+            }
+        }
+
         function renderExpenses() {
             const tableBody = document.getElementById('expensesTable').querySelector('tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            tableBody.innerHTML = '';
 
             if (expenses.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500">Belum ada data pengeluaran.</td></tr>';
                 return;
             }
 
-            expenses.forEach((expense, index) => {
+            expenses.forEach((expense) => {
                 const row = tableBody.insertRow();
                 row.insertCell().textContent = expense.date;
                 row.insertCell().textContent = expense.type;
@@ -650,19 +805,18 @@
                 row.insertCell().textContent = formatRupiah(expense.amount);
                 row.insertCell().textContent = expense.attendant;
 
-                // Action buttons for delete
                 const actionCell = row.insertCell();
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = 'Hapus';
                 deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
-                deleteBtn.onclick = () => deleteExpense(index);
+                deleteBtn.onclick = () => deleteExpense(expense.id);
                 actionCell.appendChild(deleteBtn);
             });
-            populateStudentDropdowns(); // Refresh student dropdown in expense form
-            document.getElementById('expenseDate').valueAsDate = new Date(); // Set default date
+            populateStudentDropdowns();
+            document.getElementById('expenseDate').valueAsDate = new Date();
         }
 
-        document.getElementById('expenseForm').addEventListener('submit', function(event) {
+        document.getElementById('expenseForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const type = document.getElementById('expenseType').value;
             const amount = parseInt(document.getElementById('expenseAmount').value);
@@ -671,7 +825,6 @@
             const attendant = document.getElementById('expenseAttendant').value;
 
             const newExpense = {
-                id: Date.now(), // Unique ID
                 date: date,
                 type: type,
                 amount: amount,
@@ -679,36 +832,62 @@
                 attendant: attendant
             };
 
-            expenses.push(newExpense);
-            saveData();
-            renderExpenses();
-            updateDashboard();
-            showMessage('Pengeluaran berhasil dicatat!');
+            await addExpense(newExpense);
             this.reset();
-            document.getElementById('expenseDate').valueAsDate = new Date(); // Reset date
+            document.getElementById('expenseDate').valueAsDate = new Date();
         });
 
-        function deleteExpense(index) {
-            if (confirm('Apakah Anda yakin ingin menghapus pengeluaran ini?')) {
-                expenses.splice(index, 1);
-                saveData();
-                renderExpenses();
-                updateDashboard();
-                showMessage('Pengeluaran berhasil dihapus.');
+        // --- Product/Stock Functions ---
+        async function addOrUpdateProduct(productData, productId = null) {
+            try {
+                if (!getCollectionRef('products')) return;
+                if (productId) {
+                    await setDoc(doc(getCollectionRef('products'), productId), productData);
+                    showMessage('Produk berhasil diupdate!');
+                } else {
+                    await addDoc(getCollectionRef('products'), productData);
+                    showMessage('Produk berhasil ditambahkan!');
+                }
+            } catch (e) {
+                console.error("Error adding/updating product: ", e);
+                showMessage("Gagal menyimpan produk.", "error");
             }
         }
 
-        // --- Product/Stock Functions ---
+        async function updateProductStock(productId, newStock) {
+            try {
+                if (!getCollectionRef('products')) return;
+                await setDoc(doc(getCollectionRef('products'), productId), { stock: newStock }, { merge: true });
+                console.log("Stok produk berhasil diupdate.");
+            } catch (e) {
+                console.error("Error updating product stock: ", e);
+                showMessage("Gagal memperbarui stok produk.", "error");
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus produk ini? Ini akan menghapus semua data produk terkait.')) {
+                try {
+                    if (!getCollectionRef('products')) return;
+                    await deleteDoc(doc(getCollectionRef('products'), id));
+                    showMessage('Produk berhasil dihapus.');
+                } catch (e) {
+                    console.error("Error deleting product: ", e);
+                    showMessage("Gagal menghapus produk.", "error");
+                }
+            }
+        }
+
         function renderProducts() {
             const tableBody = document.getElementById('stockTable').querySelector('tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            tableBody.innerHTML = '';
 
             if (products.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500">Belum ada produk. Tambahkan produk baru.</td></tr>';
                 return;
             }
 
-            products.forEach((product, index) => {
+            products.forEach((product) => {
                 const row = tableBody.insertRow();
                 row.insertCell().textContent = product.name;
                 row.insertCell().textContent = product.size || '-';
@@ -717,7 +896,7 @@
                 row.insertCell().textContent = product.stock;
 
                 const statusCell = row.insertCell();
-                if (product.stock <= 5 && product.stock > 0) { // Example threshold for 'Menipis'
+                if (product.stock <= 5 && product.stock > 0) {
                     statusCell.textContent = 'Menipis';
                     statusCell.className = 'text-orange-500 font-semibold';
                 } else if (product.stock === 0) {
@@ -728,24 +907,25 @@
                     statusCell.className = 'text-green-500';
                 }
 
-                // Action buttons for edit and delete
                 const actionCell = row.insertCell();
                 const editBtn = document.createElement('button');
                 editBtn.textContent = 'Edit';
                 editBtn.className = 'btn-primary text-sm px-3 py-1 mr-2';
-                editBtn.onclick = () => editProduct(index);
+                editBtn.onclick = () => editProduct(product.id);
                 actionCell.appendChild(editBtn);
 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = 'Hapus';
                 deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
-                deleteBtn.onclick = () => deleteProduct(index);
+                deleteBtn.onclick = () => deleteProduct(product.id);
                 actionCell.appendChild(deleteBtn);
             });
-            populateProductDropdowns(); // Refresh product dropdown in sales form
+            populateProductDropdowns();
         }
 
-        document.getElementById('productForm').addEventListener('submit', function(event) {
+        let editingProductId = null; // To keep track of which product is being edited
+
+        document.getElementById('productForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const name = document.getElementById('productName').value.trim();
             const size = document.getElementById('productSize').value.trim();
@@ -753,135 +933,127 @@
             const sellPrice = parseInt(document.getElementById('productSellPrice').value);
             const stock = parseInt(document.getElementById('productStock').value);
 
-            // Check if product with same name and size already exists (for update)
-            const existingProductIndex = products.findIndex(p => p.name === name && p.size === size);
+            const productData = {
+                name: name,
+                size: size,
+                buyPrice: buyPrice,
+                sellPrice: sellPrice,
+                stock: stock
+            };
 
-            if (existingProductIndex > -1) {
-                // Update existing product
-                products[existingProductIndex].buyPrice = buyPrice;
-                products[existingProductIndex].sellPrice = sellPrice;
-                products[existingProductIndex].stock = stock; // Update stock directly
-                showMessage('Produk berhasil diupdate!');
+            if (editingProductId) {
+                await addOrUpdateProduct(productData, editingProductId);
+                editingProductId = null; // Reset editing state
             } else {
-                // Add new product
-                const newProduct = {
-                    id: Date.now(), // Unique ID
-                    name: name,
-                    size: size,
-                    buyPrice: buyPrice,
-                    sellPrice: sellPrice,
-                    stock: stock
-                };
-                products.push(newProduct);
-                showMessage('Produk berhasil ditambahkan!');
+                // Check for duplicate product name + size before adding new
+                const existingProduct = products.find(p => p.name === name && p.size === size);
+                if (existingProduct) {
+                    showMessage('Produk dengan nama dan ukuran yang sama sudah ada. Gunakan tombol Edit untuk mengubahnya.', 'error');
+                    return;
+                }
+                await addOrUpdateProduct(productData);
             }
 
-            saveData();
-            renderProducts();
-            this.reset(); // Clear form
+            this.reset();
         });
 
-        function editProduct(index) {
-            const product = products[index];
-            document.getElementById('productName').value = product.name;
-            document.getElementById('productSize').value = product.size;
-            document.getElementById('productBuyPrice').value = product.buyPrice;
-            document.getElementById('productSellPrice').value = product.sellPrice;
-            document.getElementById('productStock').value = product.stock;
-            // You might want to add a hidden input or a flag to indicate editing mode
-            // For simplicity, we'll just pre-fill and the form submit will handle update if name/size match.
-            showMessage('Form produk diisi untuk diedit. Tekan "Tambah/Update Produk" untuk menyimpan perubahan.');
-        }
-
-        function deleteProduct(index) {
-            if (confirm('Apakah Anda yakin ingin menghapus produk ini? Ini akan menghapus semua data produk terkait.')) {
-                products.splice(index, 1);
-                saveData();
-                renderProducts();
-                populateProductDropdowns(); // Update dropdowns
-                showMessage('Produk berhasil dihapus.');
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (product) {
+                document.getElementById('productName').value = product.name;
+                document.getElementById('productSize').value = product.size;
+                document.getElementById('productBuyPrice').value = product.buyPrice;
+                document.getElementById('productSellPrice').value = product.sellPrice;
+                document.getElementById('productStock').value = product.stock;
+                editingProductId = id; // Set editing state
+                showMessage('Form produk diisi untuk diedit. Tekan "Tambah/Update Produk" untuk menyimpan perubahan.');
             }
         }
 
-        // Populate product dropdowns in sales form
         function populateProductDropdowns() {
             const selectElement = document.getElementById('saleProduct');
-            selectElement.innerHTML = '<option value="">Pilih Produk</option>'; // Reset options
+            selectElement.innerHTML = '<option value="">Pilih Produk</option>';
             products.forEach(product => {
                 const option = document.createElement('option');
-                option.value = `${product.name} ${product.size}`.trim(); // Combine name and size for display
+                option.value = `${product.name} ${product.size}`.trim();
                 option.textContent = `${product.name} ${product.size ? `(${product.size})` : ''} - ${formatRupiah(product.sellPrice)}`;
                 selectElement.appendChild(option);
             });
         }
 
         // --- Student Management Functions ---
+        async function addStudent(newStudent) {
+            try {
+                if (!getCollectionRef('students')) return;
+                await addDoc(getCollectionRef('students'), newStudent);
+                showMessage('Siswa berhasil ditambahkan!');
+            } catch (e) {
+                console.error("Error adding student: ", e);
+                showMessage("Gagal menambahkan siswa.", "error");
+            }
+        }
+
+        async function deleteStudent(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus siswa ini? Ini akan menghapus siswa dari daftar master.')) {
+                try {
+                    if (!getCollectionRef('students')) return;
+                    await deleteDoc(doc(getCollectionRef('students'), id));
+                    showMessage('Siswa berhasil dihapus.');
+                } catch (e) {
+                    console.error("Error deleting student: ", e);
+                    showMessage("Gagal menghapus siswa.", "error");
+                }
+            }
+        }
+
         function renderStudents() {
             const tableBody = document.getElementById('studentsTable').querySelector('tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            tableBody.innerHTML = '';
 
             if (students.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500">Belum ada siswa. Tambahkan siswa baru.</td></tr>';
                 return;
             }
 
-            students.forEach((student, index) => {
+            students.forEach((student) => {
                 const row = tableBody.insertRow();
                 row.insertCell().textContent = student.name;
                 row.insertCell().textContent = student.major;
 
-                // Action buttons for delete
                 const actionCell = row.insertCell();
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = 'Hapus';
                 deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
-                deleteBtn.onclick = () => deleteStudent(index);
+                deleteBtn.onclick = () => deleteStudent(student.id);
                 actionCell.appendChild(deleteBtn);
             });
-            populateStudentDropdowns(); // Refresh student dropdowns in other forms
+            populateStudentDropdowns();
         }
 
-        document.getElementById('studentForm').addEventListener('submit', function(event) {
+        document.getElementById('studentForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const name = document.getElementById('studentName').value.trim();
             const major = document.getElementById('studentMajor').value;
 
-            // Check for duplicate student names
             if (students.some(s => s.name === name)) {
                 showMessage('Nama siswa sudah ada.', 'error');
                 return;
             }
 
             const newStudent = {
-                id: Date.now(), // Unique ID
                 name: name,
                 major: major
             };
 
-            students.push(newStudent);
-            saveData();
-            renderStudents();
-            showMessage('Siswa berhasil ditambahkan!');
+            await addStudent(newStudent);
             this.reset();
         });
 
-        function deleteStudent(index) {
-            if (confirm('Apakah Anda yakin ingin menghapus siswa ini? Ini akan menghapus siswa dari daftar master.')) {
-                students.splice(index, 1);
-                saveData();
-                renderStudents();
-                populateStudentDropdowns(); // Update dropdowns
-                showMessage('Siswa berhasil dihapus.');
-            }
-        }
-
-        // Populate student dropdowns in sales and expense forms
         function populateStudentDropdowns() {
             const salesAttendantSelect = document.getElementById('saleAttendant');
             const expenseAttendantSelect = document.getElementById('expenseAttendant');
             const attendanceStudentSelect = document.getElementById('attendanceStudent');
 
-            // Clear existing options
             salesAttendantSelect.innerHTML = '<option value="">Pilih Siswa</option>';
             expenseAttendantSelect.innerHTML = '<option value="">Pilih Siswa</option>';
             attendanceStudentSelect.innerHTML = '<option value="">Pilih Siswa</option>';
@@ -905,11 +1077,34 @@
         }
 
         // --- Attendance Functions ---
+        async function addAttendance(newRecord) {
+            try {
+                if (!getCollectionRef('attendance')) return;
+                await addDoc(getCollectionRef('attendance'), newRecord);
+                showMessage('Kehadiran siswa berhasil dicatat!');
+            } catch (e) {
+                console.error("Error adding attendance: ", e);
+                showMessage("Gagal mencatat kehadiran.", "error");
+            }
+        }
+
+        async function deleteAttendance(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus catatan kehadiran ini?')) {
+                try {
+                    if (!getCollectionRef('attendance')) return;
+                    await deleteDoc(doc(getCollectionRef('attendance'), id));
+                    showMessage('Catatan kehadiran berhasil dihapus.');
+                } catch (e) {
+                    console.error("Error deleting attendance: ", e);
+                    showMessage("Gagal menghapus catatan kehadiran.", "error");
+                }
+            }
+        }
+
         function renderAttendance() {
             const tableBody = document.getElementById('attendanceTable').querySelector('tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            tableBody.innerHTML = '';
 
-            // Sort attendance by date in descending order
             const sortedAttendance = [...attendance].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             if (sortedAttendance.length === 0) {
@@ -917,35 +1112,33 @@
                 return;
             }
 
-            sortedAttendance.forEach((record, index) => {
+            sortedAttendance.forEach((record) => {
                 const row = tableBody.insertRow();
                 row.insertCell().textContent = record.date;
                 row.insertCell().textContent = record.shift;
                 row.insertCell().textContent = record.studentName;
                 const student = students.find(s => s.name === record.studentName);
-                row.insertCell().textContent = student ? student.major : '-'; // Display major if student found
+                row.insertCell().textContent = student ? student.major : '-';
                 row.insertCell().textContent = record.status;
 
-                // Action buttons for delete
                 const actionCell = row.insertCell();
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = 'Hapus';
                 deleteBtn.className = 'btn-secondary text-sm px-3 py-1';
-                deleteBtn.onclick = () => deleteAttendance(index);
+                deleteBtn.onclick = () => deleteAttendance(record.id);
                 actionCell.appendChild(deleteBtn);
             });
-            populateStudentDropdowns(); // Refresh student dropdown in attendance form
-            document.getElementById('attendanceDate').valueAsDate = new Date(); // Set default date
+            populateStudentDropdowns();
+            document.getElementById('attendanceDate').valueAsDate = new Date();
         }
 
-        document.getElementById('attendanceForm').addEventListener('submit', function(event) {
+        document.getElementById('attendanceForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const date = document.getElementById('attendanceDate').value;
             const shift = document.getElementById('attendanceShift').value.trim();
             const studentName = document.getElementById('attendanceStudent').value;
             const status = document.getElementById('attendanceStatus').value;
 
-            // Check for duplicate attendance for the same student on the same date and shift
             const isDuplicate = attendance.some(record =>
                 record.date === date &&
                 record.shift === shift &&
@@ -958,46 +1151,26 @@
             }
 
             const newRecord = {
-                id: Date.now(), // Unique ID
                 date: date,
                 shift: shift,
                 studentName: studentName,
                 status: status
             };
 
-            attendance.push(newRecord);
-            saveData();
-            renderAttendance();
-            showMessage('Kehadiran siswa berhasil dicatat!');
+            await addAttendance(newRecord);
             this.reset();
-            document.getElementById('attendanceDate').valueAsDate = new Date(); // Reset date
+            document.getElementById('attendanceDate').valueAsDate = new Date();
         });
-
-        function deleteAttendance(index) {
-            if (confirm('Apakah Anda yakin ingin menghapus catatan kehadiran ini?')) {
-                attendance.splice(index, 1);
-                saveData();
-                renderAttendance();
-                showMessage('Catatan kehadiran berhasil dihapus.');
-            }
-        }
 
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Set default date for date inputs
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('saleDate').value = today;
             document.getElementById('expenseDate').value = today;
             document.getElementById('attendanceDate').value = today;
 
-            // Render all data and show dashboard initially
-            renderProducts();
-            renderSales();
-            renderExpenses();
-            renderStudents();
-            renderAttendance();
-            updateDashboard();
-            showTab('dashboard'); // Show dashboard on initial load
+            initializeFirebase(); // Initialize Firebase on DOMContentLoaded
+            showTab('dashboard'); // Show dashboard initially
         });
     </script>
 </body>
